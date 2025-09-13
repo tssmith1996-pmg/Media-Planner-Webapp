@@ -1,7 +1,9 @@
 # Media Planner Webapp
 
+
 A minimalist React and Tailwind CSS application providing a sidebar navigation layout.
 Use the menu to switch between Dashboard, Create New Plan, and Plans sections.
+
 
 ## Development
 
@@ -9,6 +11,7 @@ Use the menu to switch between Dashboard, Create New Plan, and Plans sections.
 npm install
 npm run dev
 ```
+
 
 ## Local testing with Firebase emulators
 
@@ -33,12 +36,14 @@ Before deploying to Firebase Hosting you can test the app locally.
    npm run dev
    ```
 
+
 4. Open <http://localhost:5173> to use the app. If you don't define any globals,
    clicking **Continue as Guest** will automatically configure the app to use the
    local emulators with a default project ID of `demo-app`.
 
    To customize these settings manually, define the globals below in `index.html`
    before loading `src/main.jsx`:
+
 
    ```html
    <script>
@@ -49,6 +54,7 @@ Before deploying to Firebase Hosting you can test the app locally.
       authDomain: 'your-project-id.firebaseapp.com',
     };
     window.__app_id = 'your-project-id';
+
    </script>
    ```
 
@@ -60,8 +66,10 @@ Before deploying to Firebase Hosting you can test the app locally.
 When the app loads you are presented with a login page. You can create an account,
 sign in with an existing email and password, or choose **Continue as Guest** to
 sign in anonymously for quick testing. The guest option now bootstraps a default
+
 Firebase emulator configuration with placeholder `apiKey` and `authDomain`
 values automatically, so you can try the app without editing `index.html` first.
+
 
 ## Production build
 
