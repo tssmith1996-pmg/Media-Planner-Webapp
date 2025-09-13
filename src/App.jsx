@@ -1,23 +1,30 @@
+
 import { useState, useEffect, Fragment } from 'react'
+
 import { initializeApp } from 'firebase/app'
 import {
   getFirestore,
   collection,
+
   addDoc,
   deleteDoc,
   doc,
   updateDoc,
+
   onSnapshot,
   connectFirestoreEmulator,
+
 } from 'firebase/firestore'
 import {
   getAuth,
   signInWithCustomToken,
+
   signInAnonymously,
   onAuthStateChanged,
   connectAuthEmulator,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+
 } from 'firebase/auth'
 
 function App() {
@@ -25,6 +32,7 @@ function App() {
   const [expandedPlan, setExpandedPlan] = useState(null)
   const [plans, setPlans] = useState([])
   const [db, setDb] = useState(null)
+
   const [auth, setAuth] = useState(null)
   const [userId, setUserId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -36,6 +44,7 @@ function App() {
   const [initKey, setInitKey] = useState(0)
   const [pendingGuest, setPendingGuest] = useState(false)
 
+
 const [form, setForm] = useState({
     name: '',
     totalBudget: '',
@@ -45,6 +54,7 @@ const [form, setForm] = useState({
   })
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+
 
   const handleSignIn = async (e) => {
     e.preventDefault()
@@ -103,6 +113,7 @@ const [form, setForm] = useState({
       signInWithCustomToken(authInstance, token).catch(console.error)
     let unsubSnap
     const unsubAuth = onAuthStateChanged(authInstance, (user) => {
+
       if (user) {
         setUserId(user.uid)
         const colRef = collection(
@@ -121,17 +132,21 @@ const [form, setForm] = useState({
         setLoading(false)
       }
     })
+
     if (pendingGuest) {
       signInAnonymously(authInstance).catch((err) => setAuthError(err.message))
       setPendingGuest(false)
     }
+
     return () => {
       unsubAuth()
       if (unsubSnap) unsubSnap()
     }
+
     // pendingGuest intentionally omitted from deps to avoid extra init cycle
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initKey, appId])
+
 
   const validateBudget = (f) => {
     const allocated = f.channels.reduce(
@@ -249,9 +264,11 @@ const [form, setForm] = useState({
       userId,
       'mediaPlans',
       planId,
+
     )
     await deleteDoc(docRef)
   }
+
 
   const NavItem = ({ id, icon, label }) => (
     <button
@@ -283,10 +300,12 @@ const [form, setForm] = useState({
               onSubmit={editingId ? handleUpdatePlan : handleSavePlan}
               className="space-y-4"
             >
+
               <div>
                 <label className="block text-sm font-medium">Campaign Name</label>
                 <input
                   type="text"
+
                   value={form.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -304,20 +323,24 @@ const [form, setForm] = useState({
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 <div>
                   <label className="block text-sm font-medium">Start Date</label>
                   <input
                     type="date"
+
                     value={form.startDate}
                     onChange={(e) => handleChange('startDate', e.target.value)}
                     className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     required
+
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium">End Date</label>
                   <input
                     type="date"
+
                     value={form.endDate}
                     onChange={(e) => handleChange('endDate', e.target.value)}
                     className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -493,6 +516,7 @@ const [form, setForm] = useState({
     )
   }
 
+
   if (!userId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -555,6 +579,7 @@ const [form, setForm] = useState({
     )
   }
 
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-100">
       <aside className="bg-gradient-to-b from-gray-800 to-gray-900 text-white w-full md:w-64 shadow-lg">
@@ -566,6 +591,7 @@ const [form, setForm] = useState({
         </nav>
       </aside>
       <main className="flex-1 p-6">{renderContent()}</main>
+
     </div>
   )
 }
