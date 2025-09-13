@@ -78,7 +78,13 @@ const [form, setForm] = useState({
 
   const handleGuest = () => {
     if (!globalThis.__firebase_config) {
-      globalThis.__firebase_config = { projectId: 'demo-app' }
+
+      globalThis.__firebase_config = {
+        projectId: 'demo-app',
+        apiKey: 'demo-api-key',
+        authDomain: 'demo-app.firebaseapp.com',
+      }
+
       globalThis.__app_id = 'demo-app'
       globalThis.__use_emulator = true
       setAppId(globalThis.__app_id)

@@ -48,9 +48,13 @@ Before deploying to Firebase Hosting you can test the app locally.
    ```html
    <script>
      window.__use_emulator = true;
+    window.__firebase_config = {
+      projectId: 'your-project-id',
+      apiKey: 'fake-api-key',
+      authDomain: 'your-project-id.firebaseapp.com',
+    };
+    window.__app_id = 'your-project-id';
 
-     window.__firebase_config = { projectId: 'your-project-id' };
-     window.__app_id = 'your-project-id';
    </script>
    ```
 
@@ -62,8 +66,9 @@ Before deploying to Firebase Hosting you can test the app locally.
 When the app loads you are presented with a login page. You can create an account,
 sign in with an existing email and password, or choose **Continue as Guest** to
 sign in anonymously for quick testing. The guest option now bootstraps a default
-Firebase emulator configuration automatically, so you can try the app without
-editing `index.html` first.
+
+Firebase emulator configuration with placeholder `apiKey` and `authDomain`
+values automatically, so you can try the app without editing `index.html` first.
 
 
 ## Production build
