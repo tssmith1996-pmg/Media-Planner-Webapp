@@ -1,0 +1,66 @@
+# Media Planner Webapp
+
+A minimalist React and Tailwind CSS application providing a sidebar navigation layout.
+Use the menu to switch between Dashboard, Create New Plan, and Plans sections.
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+## Local testing with Firebase emulators
+
+Before deploying to Firebase Hosting you can test the app locally.
+
+1. Install dependencies and the Firebase CLI:
+
+   ```bash
+   npm install
+   npm install -g firebase-tools
+   ```
+
+2. Start the Firestore and Auth emulators (uses `firebase.json` for ports):
+
+   ```bash
+   firebase emulators:start
+   ```
+
+3. In another terminal start the Vite dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Open <http://localhost:5173> to use the app. If you don't define any globals,
+   clicking **Continue as Guest** will automatically configure the app to use the
+   local emulators with a default project ID of `demo-app`.
+
+   To customize these settings manually, define the globals below in `index.html`
+   before loading `src/main.jsx`:
+
+   ```html
+   <script>
+     window.__use_emulator = true;
+     window.__firebase_config = { projectId: 'your-project-id' };
+     window.__app_id = 'your-project-id';
+   </script>
+   ```
+
+   Replace the placeholders with any identifier you'd like. When `__use_emulator` is
+   true the app connects to the local emulators instead of production services.
+
+## Authentication
+
+When the app loads you are presented with a login page. You can create an account,
+sign in with an existing email and password, or choose **Continue as Guest** to
+sign in anonymously for quick testing. The guest option now bootstraps a default
+Firebase emulator configuration automatically, so you can try the app without
+editing `index.html` first.
+
+## Production build
+
+```bash
+npm run build
+```
