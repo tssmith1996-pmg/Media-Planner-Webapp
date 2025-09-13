@@ -22,6 +22,9 @@ import {
   signInAnonymously,
   onAuthStateChanged,
   connectAuthEmulator,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+
 } from 'firebase/auth'
 
 function App() {
@@ -29,9 +32,18 @@ function App() {
   const [expandedPlan, setExpandedPlan] = useState(null)
   const [plans, setPlans] = useState([])
   const [db, setDb] = useState(null)
+
+  const [auth, setAuth] = useState(null)
   const [userId, setUserId] = useState('')
   const [loading, setLoading] = useState(true)
-  const appId = globalThis.__app_id
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authMode, setAuthMode] = useState('signin')
+  const [authError, setAuthError] = useState('')
+  const [appId, setAppId] = useState(globalThis.__app_id)
+  const [initKey, setInitKey] = useState(0)
+  const [pendingGuest, setPendingGuest] = useState(false)
+
 
 const [form, setForm] = useState({
     name: '',
@@ -43,21 +55,65 @@ const [form, setForm] = useState({
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
 
+
+  const handleSignIn = async (e) => {
+    e.preventDefault()
+    if (!auth) return
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+    } catch (err) {
+      setAuthError(err.message)
+    }
+  }
+
+  const handleSignUp = async (e) => {
+    e.preventDefault()
+    if (!auth) return
+    try {
+      await createUserWithEmailAndPassword(auth, email, password)
+    } catch (err) {
+      setAuthError(err.message)
+    }
+  }
+
+  const handleGuest = () => {
+    if (!globalThis.__firebase_config) {
+      globalThis.__firebase_config = { projectId: 'demo-app' }
+      globalThis.__app_id = 'demo-app'
+      globalThis.__use_emulator = true
+      setAppId(globalThis.__app_id)
+      setPendingGuest(true)
+      setInitKey((k) => k + 1)
+      return
+    }
+    if (!auth) {
+      setPendingGuest(true)
+      setInitKey((k) => k + 1)
+      return
+    }
+    signInAnonymously(auth).catch((err) => setAuthError(err.message))
+  }
+
   useEffect(() => {
+    if (!globalThis.__firebase_config) {
+      setLoading(false)
+      return
+    }
     const app = initializeApp(globalThis.__firebase_config)
     const dbInstance = getFirestore(app)
-    const auth = getAuth(app)
+    const authInstance = getAuth(app)
     if (globalThis.__use_emulator) {
       connectFirestoreEmulator(dbInstance, 'localhost', 8080)
-      connectAuthEmulator(auth, 'http://localhost:9099')
+      connectAuthEmulator(authInstance, 'http://localhost:9099')
     }
     setDb(dbInstance)
+    setAuth(authInstance)
     const token = globalThis.__initial_auth_token
-    ;(token ? signInWithCustomToken(auth, token) : signInAnonymously(auth)).catch(
-      console.error,
-    )
+    if (token)
+      signInWithCustomToken(authInstance, token).catch(console.error)
     let unsubSnap
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
+    const unsubAuth = onAuthStateChanged(authInstance, (user) => {
+
       if (user) {
         setUserId(user.uid)
         const colRef = collection(
@@ -76,11 +132,21 @@ const [form, setForm] = useState({
         setLoading(false)
       }
     })
+
+    if (pendingGuest) {
+      signInAnonymously(authInstance).catch((err) => setAuthError(err.message))
+      setPendingGuest(false)
+    }
+
     return () => {
       unsubAuth()
       if (unsubSnap) unsubSnap()
     }
-  }, [appId])
+
+    // pendingGuest intentionally omitted from deps to avoid extra init cycle
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initKey, appId])
+
 
   const validateBudget = (f) => {
     const allocated = f.channels.reduce(
@@ -449,6 +515,70 @@ const [form, setForm] = useState({
       </div>
     )
   }
+
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-6 rounded-lg shadow w-full max-w-sm">
+          <h2 className="text-2xl font-semibold mb-4">
+            {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+          </h2>
+          <form
+            onSubmit={authMode === 'signin' ? handleSignIn : handleSignUp}
+            className="space-y-4"
+          >
+            <div>
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            {authError && <p className="text-red-600 text-sm">{authError}</p>}
+            <button
+              type="submit"
+              className="w-full py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition"
+            >
+              {authMode === 'signin' ? 'Sign In' : 'Sign Up'}
+            </button>
+          </form>
+          <button
+            onClick={handleGuest}
+            className="mt-4 w-full py-2 bg-gray-600 text-white rounded-md shadow hover:bg-gray-700 transition"
+          >
+            Continue as Guest
+          </button>
+          <p className="mt-4 text-center text-sm">
+            {authMode === 'signin' ? 'Need an account?' : 'Already have an account?'}{' '}
+            <button
+              onClick={() => {
+                setAuthMode(authMode === 'signin' ? 'signup' : 'signin')
+                setAuthError('')
+              }}
+              className="text-blue-600 underline"
+            >
+              {authMode === 'signin' ? 'Sign up' : 'Sign in'}
+            </button>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-100">

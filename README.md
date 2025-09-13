@@ -36,19 +36,34 @@ Before deploying to Firebase Hosting you can test the app locally.
    npm run dev
    ```
 
-4. Open <http://localhost:5173> to use the app. To make the app talk to the emulators,
-   define the following globals in `index.html` before loading `src/main.jsx`:
+
+4. Open <http://localhost:5173> to use the app. If you don't define any globals,
+   clicking **Continue as Guest** will automatically configure the app to use the
+   local emulators with a default project ID of `demo-app`.
+
+   To customize these settings manually, define the globals below in `index.html`
+   before loading `src/main.jsx`:
+
 
    ```html
    <script>
      window.__use_emulator = true;
-     window.__firebase_config = { projectId: 'demo-app' };
-     window.__app_id = 'demo-app';
+
+     window.__firebase_config = { projectId: 'your-project-id' };
+     window.__app_id = 'your-project-id';
    </script>
    ```
 
-   Replace `demo-app` with any identifier you'd like. When `__use_emulator` is true the
-   app connects to the local emulators instead of production services.
+   Replace the placeholders with any identifier you'd like. When `__use_emulator` is
+   true the app connects to the local emulators instead of production services.
+
+## Authentication
+
+When the app loads you are presented with a login page. You can create an account,
+sign in with an existing email and password, or choose **Continue as Guest** to
+sign in anonymously for quick testing. The guest option now bootstraps a default
+Firebase emulator configuration automatically, so you can try the app without
+editing `index.html` first.
 
 
 ## Production build
