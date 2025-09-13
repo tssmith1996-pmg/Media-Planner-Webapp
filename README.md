@@ -1,7 +1,9 @@
 # Media Planner Webapp
 
+
 A minimalist React and Tailwind CSS application providing a sidebar navigation layout.
 Use the menu to switch between Dashboard, Create New Plan, and Plans sections.
+
 
 ## Development
 
@@ -9,6 +11,7 @@ Use the menu to switch between Dashboard, Create New Plan, and Plans sections.
 npm install
 npm run dev
 ```
+
 
 ## Local testing with Firebase emulators
 
@@ -46,6 +49,7 @@ Before deploying to Firebase Hosting you can test the app locally.
 
    Replace `demo-app` with any identifier you'd like. When `__use_emulator` is true the
    app connects to the local emulators instead of production services.
+
 
 ## Production build
 

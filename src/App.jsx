@@ -1,18 +1,24 @@
+
 import { useState, useEffect, Fragment } from 'react'
+
 import { initializeApp } from 'firebase/app'
 import {
   getFirestore,
   collection,
+
   addDoc,
   deleteDoc,
   doc,
   updateDoc,
+
   onSnapshot,
   connectFirestoreEmulator,
+
 } from 'firebase/firestore'
 import {
   getAuth,
   signInWithCustomToken,
+
   signInAnonymously,
   onAuthStateChanged,
   connectAuthEmulator,
@@ -192,9 +198,11 @@ const [form, setForm] = useState({
       userId,
       'mediaPlans',
       planId,
+
     )
     await deleteDoc(docRef)
   }
+
 
   const NavItem = ({ id, icon, label }) => (
     <button
@@ -226,10 +234,12 @@ const [form, setForm] = useState({
               onSubmit={editingId ? handleUpdatePlan : handleSavePlan}
               className="space-y-4"
             >
+
               <div>
                 <label className="block text-sm font-medium">Campaign Name</label>
                 <input
                   type="text"
+
                   value={form.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -247,20 +257,24 @@ const [form, setForm] = useState({
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 <div>
                   <label className="block text-sm font-medium">Start Date</label>
                   <input
                     type="date"
+
                     value={form.startDate}
                     onChange={(e) => handleChange('startDate', e.target.value)}
                     className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     required
+
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium">End Date</label>
                   <input
                     type="date"
+
                     value={form.endDate}
                     onChange={(e) => handleChange('endDate', e.target.value)}
                     className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -447,6 +461,7 @@ const [form, setForm] = useState({
         </nav>
       </aside>
       <main className="flex-1 p-6">{renderContent()}</main>
+
     </div>
   )
 }
