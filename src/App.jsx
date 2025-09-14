@@ -53,10 +53,14 @@ function App() {
     customClient: '',
     name: '',
     totalBudget: '',
+    goalKpi: '',
+    campaignType: '',
+    overallGoal: '',
     channels: [],
   })
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+  const [expandedChannels, setExpandedChannels] = useState([])
 
   const demoOptions = ['Total People', 'M18-35', 'F25-54', 'M35-49', 'Custom']
   const metricOptions = [
@@ -204,6 +208,14 @@ function App() {
     })
   }
 
+  const toggleChannelDetails = (index) => {
+    setExpandedChannels((prev) =>
+      prev.includes(index)
+        ? prev.filter((i) => i !== index)
+        : [...prev, index],
+    )
+  }
+
   const handleAddChannel = () => {
     setForm((f) => {
       const newForm = {
@@ -225,6 +237,15 @@ function App() {
             value: '',
             mediaCommissionPct: '',
             productionInstallationPct: '',
+            daypart: '',
+            spotLength: '',
+            isProgrammatic: false,
+            targetingDetails: '',
+            impressionsPlanned: '',
+            clicksPlanned: '',
+            cpmPlanned: '',
+            cpePlanned: '',
+            cpcPlanned: '',
           },
         ],
       }
@@ -250,6 +271,9 @@ function App() {
       totalBudget: Number(form.totalBudget),
       startDate,
       endDate,
+      goalKpi: form.goalKpi,
+      campaignType: form.campaignType,
+      overallGoal: form.overallGoal,
       channels: form.channels.map((c) => ({
         name: c.name,
         publisher: c.publisher,
@@ -270,6 +294,15 @@ function App() {
           ((Number(c.budget) || 0) *
             (Number(c.productionInstallationPct) || 0)) /
           100,
+        daypart: c.daypart,
+        spotLength: Number(c.spotLength) || 0,
+        isProgrammatic: !!c.isProgrammatic,
+        targetingDetails: c.targetingDetails,
+        impressionsPlanned: Number(c.impressionsPlanned) || 0,
+        clicksPlanned: Number(c.clicksPlanned) || 0,
+        cpmPlanned: Number(c.cpmPlanned) || 0,
+        cpePlanned: Number(c.cpePlanned) || 0,
+        cpcPlanned: Number(c.cpcPlanned) || 0,
       })),
     }
     if (isDev) {
@@ -280,7 +313,17 @@ function App() {
       const colRef = collection(db, 'artifacts', appId, 'users', userId, 'mediaPlans')
       await addDoc(colRef, planData)
     }
-    setForm({ client: clientOptions[0], customClient: '', name: '', totalBudget: '', channels: [] })
+    setForm({
+      client: clientOptions[0],
+      customClient: '',
+      name: '',
+      totalBudget: '',
+      goalKpi: '',
+      campaignType: '',
+      overallGoal: '',
+      channels: [],
+    })
+    setExpandedChannels([])
     setSection('plans')
   }
 
@@ -301,6 +344,9 @@ function App() {
       totalBudget: Number(form.totalBudget),
       startDate,
       endDate,
+      goalKpi: form.goalKpi,
+      campaignType: form.campaignType,
+      overallGoal: form.overallGoal,
       channels: form.channels.map((c) => ({
         name: c.name,
         publisher: c.publisher,
@@ -321,6 +367,15 @@ function App() {
           ((Number(c.budget) || 0) *
             (Number(c.productionInstallationPct) || 0)) /
           100,
+        daypart: c.daypart,
+        spotLength: Number(c.spotLength) || 0,
+        isProgrammatic: !!c.isProgrammatic,
+        targetingDetails: c.targetingDetails,
+        impressionsPlanned: Number(c.impressionsPlanned) || 0,
+        clicksPlanned: Number(c.clicksPlanned) || 0,
+        cpmPlanned: Number(c.cpmPlanned) || 0,
+        cpePlanned: Number(c.cpePlanned) || 0,
+        cpcPlanned: Number(c.cpcPlanned) || 0,
       })),
     }
     if (isDev) {
@@ -346,8 +401,12 @@ function App() {
       customClient: '',
       name: '',
       totalBudget: '',
+      goalKpi: '',
+      campaignType: '',
+      overallGoal: '',
       channels: [],
     })
+    setExpandedChannels([])
     setSection('plans')
   }
 
@@ -357,6 +416,9 @@ function App() {
       customClient: clientOptions.includes(plan.client) ? '' : plan.client,
       name: plan.name,
       totalBudget: plan.totalBudget,
+      goalKpi: plan.goalKpi || '',
+      campaignType: plan.campaignType || '',
+      overallGoal: plan.overallGoal || '',
       channels: plan.channels.map((c) => ({
         name: c.name,
         publisher: c.publisher || '',
@@ -372,9 +434,19 @@ function App() {
         value: c.value,
         mediaCommissionPct: c.mediaCommissionPct || '',
         productionInstallationPct: c.productionInstallationPct || '',
+        daypart: c.daypart || '',
+        spotLength: c.spotLength || '',
+        isProgrammatic: c.isProgrammatic || false,
+        targetingDetails: c.targetingDetails || '',
+        impressionsPlanned: c.impressionsPlanned || '',
+        clicksPlanned: c.clicksPlanned || '',
+        cpmPlanned: c.cpmPlanned || '',
+        cpePlanned: c.cpePlanned || '',
+        cpcPlanned: c.cpcPlanned || '',
       })),
     })
     setEditingId(plan.id)
+    setExpandedChannels([])
     setSection('create')
   }
 
@@ -472,6 +544,35 @@ function App() {
                   className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">Goal KPI</label>
+                  <input
+                    type="text"
+                    value={form.goalKpi}
+                    onChange={(e) => handleChange('goalKpi', e.target.value)}
+                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Campaign Type</label>
+                  <input
+                    type="text"
+                    value={form.campaignType}
+                    onChange={(e) => handleChange('campaignType', e.target.value)}
+                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Overall Goal</label>
+                  <input
+                    type="text"
+                    value={form.overallGoal}
+                    onChange={(e) => handleChange('overallGoal', e.target.value)}
+                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
               </div>
               <div>
                 <h3 className="text-xl font-semibold mb-2">Channels</h3>
@@ -684,6 +785,162 @@ function App() {
                         })}
                       </p>
                     </div>
+                    <div className="col-span-full">
+                      <button
+                        type="button"
+                        onClick={() => toggleChannelDetails(idx)}
+                        className="mt-2 px-2 py-1 bg-gray-200 rounded"
+                      >
+                        {expandedChannels.includes(idx)
+                          ? 'Hide Details'
+                          : 'More Details'}
+                      </button>
+                      {expandedChannels.includes(idx) && (
+                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium">Daypart</label>
+                            <input
+                              type="text"
+                              value={ch.daypart}
+                              onChange={(e) =>
+                                handleChannelChange(idx, 'daypart', e.target.value)
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Spot Length (sec)
+                            </label>
+                            <input
+                              type="number"
+                              value={ch.spotLength}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'spotLength',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center mt-6">
+                            <input
+                              type="checkbox"
+                              checked={ch.isProgrammatic || false}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'isProgrammatic',
+                                  e.target.checked,
+                                )
+                              }
+                              className="mr-2"
+                            />
+                            <label className="text-sm font-medium">
+                              Programmatic Buy
+                            </label>
+                          </div>
+                          <div className="md:col-span-3">
+                            <label className="block text-sm font-medium">
+                              Targeting Details
+                            </label>
+                            <input
+                              type="text"
+                              value={ch.targetingDetails}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'targetingDetails',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Impressions Planned
+                            </label>
+                            <input
+                              type="number"
+                              value={ch.impressionsPlanned}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'impressionsPlanned',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Clicks Planned
+                            </label>
+                            <input
+                              type="number"
+                              value={ch.clicksPlanned}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'clicksPlanned',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">CPM Planned</label>
+                            <input
+                              type="number"
+                              value={ch.cpmPlanned}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'cpmPlanned',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">CPE Planned</label>
+                            <input
+                              type="number"
+                              value={ch.cpePlanned}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'cpePlanned',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">CPC Planned</label>
+                            <input
+                              type="number"
+                              value={ch.cpcPlanned}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'cpcPlanned',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <button
@@ -770,6 +1027,15 @@ function App() {
                                     <th className="p-1">Budget</th>
                                     <th className="p-1">Target Metric</th>
                                     <th className="p-1">Target Value</th>
+                                    <th className="p-1">Daypart</th>
+                                    <th className="p-1">Spot Length</th>
+                                    <th className="p-1">Programmatic</th>
+                                    <th className="p-1">Targeting</th>
+                                    <th className="p-1">Impressions</th>
+                                    <th className="p-1">Clicks</th>
+                                    <th className="p-1">CPM</th>
+                                    <th className="p-1">CPE</th>
+                                    <th className="p-1">CPC</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -785,6 +1051,15 @@ function App() {
                                       <td className="p-1">${ch.budget.toLocaleString()}</td>
                                       <td className="p-1">{ch.metric}</td>
                                       <td className="p-1">{ch.value}</td>
+                                      <td className="p-1">{ch.daypart}</td>
+                                      <td className="p-1">{ch.spotLength}</td>
+                                      <td className="p-1">{ch.isProgrammatic ? 'Yes' : 'No'}</td>
+                                      <td className="p-1">{ch.targetingDetails}</td>
+                                      <td className="p-1">{ch.impressionsPlanned}</td>
+                                      <td className="p-1">{ch.clicksPlanned}</td>
+                                      <td className="p-1">{ch.cpmPlanned}</td>
+                                      <td className="p-1">{ch.cpePlanned}</td>
+                                      <td className="p-1">{ch.cpcPlanned}</td>
                                     </tr>
                                   ))}
                                 </tbody>
