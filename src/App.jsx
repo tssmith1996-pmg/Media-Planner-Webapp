@@ -223,6 +223,8 @@ function App() {
             metric: 'Impressions',
             customMetric: '',
             value: '',
+            mediaCommissionPct: '',
+            productionInstallationPct: '',
           },
         ],
       }
@@ -259,6 +261,15 @@ function App() {
         demo: c.demo === 'Custom' ? c.customDemo : c.demo,
         metric: c.metric === 'Custom' ? c.customMetric : c.metric,
         value: Number(c.value),
+        mediaCommissionPct: Number(c.mediaCommissionPct) || 0,
+        mediaCommissionAmount:
+          ((Number(c.budget) || 0) * (Number(c.mediaCommissionPct) || 0)) /
+          100,
+        productionInstallationPct: Number(c.productionInstallationPct) || 0,
+        productionInstallationAmount:
+          ((Number(c.budget) || 0) *
+            (Number(c.productionInstallationPct) || 0)) /
+          100,
       })),
     }
     if (isDev) {
@@ -301,6 +312,15 @@ function App() {
         demo: c.demo === 'Custom' ? c.customDemo : c.demo,
         metric: c.metric === 'Custom' ? c.customMetric : c.metric,
         value: Number(c.value),
+        mediaCommissionPct: Number(c.mediaCommissionPct) || 0,
+        mediaCommissionAmount:
+          ((Number(c.budget) || 0) * (Number(c.mediaCommissionPct) || 0)) /
+          100,
+        productionInstallationPct: Number(c.productionInstallationPct) || 0,
+        productionInstallationAmount:
+          ((Number(c.budget) || 0) *
+            (Number(c.productionInstallationPct) || 0)) /
+          100,
       })),
     }
     if (isDev) {
@@ -350,6 +370,8 @@ function App() {
         metric: metricOptions.includes(c.metric) ? c.metric : 'Custom',
         customMetric: metricOptions.includes(c.metric) ? '' : c.metric,
         value: c.value,
+        mediaCommissionPct: c.mediaCommissionPct || '',
+        productionInstallationPct: c.productionInstallationPct || '',
       })),
     })
     setEditingId(plan.id)
@@ -420,13 +442,15 @@ function App() {
                   ))}
                 </select>
                 {form.client === 'Custom' && (
-                  <input
-                    type="text"
-                    placeholder="Custom Client"
-                    value={form.customClient}
-                    onChange={(e) => handleChange('customClient', e.target.value)}
-                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <div className="mt-1">
+                    <label className="block text-sm font-medium">Custom Client</label>
+                    <input
+                      type="text"
+                      value={form.customClient}
+                      onChange={(e) => handleChange('customClient', e.target.value)}
+                      className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
                 )}
               </div>
               <div>
@@ -454,72 +478,87 @@ function App() {
                 {form.channels.map((ch, idx) => (
                   <div
                     key={idx}
-                    className="grid grid-cols-1 md:grid-cols-10 gap-2 mb-2"
+                    className="grid grid-cols-1 gap-2 mb-2 md:[grid-template-columns:repeat(14,minmax(0,1fr))]"
                   >
-                    <input
-                      type="text"
-                      placeholder="Channel Name"
-                      value={ch.name}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'name', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Publisher"
-                      value={ch.publisher}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'publisher', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Ad Format"
-                      value={ch.adFormat}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'adFormat', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Size"
-                      value={ch.size}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'size', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <input
-                      type="date"
-                      placeholder="Start Date"
-                      value={ch.startDate}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'startDate', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <input
-                      type="date"
-                      placeholder="End Date"
-                      value={ch.endDate}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'endDate', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Budget Allocation"
-                      value={ch.budget}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'budget', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
                     <div>
+                      <label className="block text-sm font-medium">Channel Name</label>
+                      <input
+                        type="text"
+                        value={ch.name}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'name', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Publisher</label>
+                      <input
+                        type="text"
+                        value={ch.publisher}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'publisher', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Ad Format</label>
+                      <input
+                        type="text"
+                        value={ch.adFormat}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'adFormat', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Size</label>
+                      <input
+                        type="text"
+                        value={ch.size}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'size', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Start Date</label>
+                      <input
+                        type="date"
+                        value={ch.startDate}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'startDate', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">End Date</label>
+                      <input
+                        type="date"
+                        value={ch.endDate}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'endDate', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Budget Allocation</label>
+                      <input
+                        type="number"
+                        value={ch.budget}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'budget', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Demo</label>
                       <select
                         value={ch.demo}
                         onChange={(e) =>
@@ -534,15 +573,17 @@ function App() {
                         ))}
                       </select>
                       {ch.demo === 'Custom' && (
-                        <input
-                          type="text"
-                          placeholder="Custom Demo"
-                          value={ch.customDemo}
-                          onChange={(e) =>
-                            handleChannelChange(idx, 'customDemo', e.target.value)
-                          }
-                          className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
-                        />
+                        <div className="mt-1">
+                          <label className="block text-sm font-medium">Custom Demo</label>
+                          <input
+                            type="text"
+                            value={ch.customDemo}
+                            onChange={(e) =>
+                              handleChannelChange(idx, 'customDemo', e.target.value)
+                            }
+                            className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+                          />
+                        </div>
                       )}
                     </div>
                     <div>
@@ -561,30 +602,88 @@ function App() {
                         ))}
                       </select>
                       {ch.metric === 'Custom' && (
-                        <input
-                          type="text"
-                          placeholder="Custom Metric Name"
-                          value={ch.customMetric}
-                          onChange={(e) =>
-                            handleChannelChange(
-                              idx,
-                              'customMetric',
-                              e.target.value,
-                            )
-                          }
-                          className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
-                        />
+                        <div className="mt-1">
+                          <label className="block text-sm font-medium">Custom Metric Name</label>
+                          <input
+                            type="text"
+                            value={ch.customMetric}
+                            onChange={(e) =>
+                              handleChannelChange(
+                                idx,
+                                'customMetric',
+                                e.target.value,
+                              )
+                            }
+                            className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+                          />
+                        </div>
                       )}
                     </div>
-                    <input
-                      type="number"
-                      placeholder="Target Value"
-                      value={ch.value}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'value', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium">Target Value</label>
+                      <input
+                        type="number"
+                        value={ch.value}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'value', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Media Commission (%)</label>
+                      <input
+                        type="number"
+                        value={ch.mediaCommissionPct || ''}
+                        onChange={(e) =>
+                          handleChannelChange(
+                            idx,
+                            'mediaCommissionPct',
+                            e.target.value,
+                          )
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p className="text-sm text-gray-600 mt-1">
+                        Amount: $
+                        {(
+                          ((Number(ch.budget) || 0) *
+                            (Number(ch.mediaCommissionPct) || 0)) /
+                          100
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">
+                        Production & Installation Fee (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={ch.productionInstallationPct || ''}
+                        onChange={(e) =>
+                          handleChannelChange(
+                            idx,
+                            'productionInstallationPct',
+                            e.target.value,
+                          )
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p className="text-sm text-gray-600 mt-1">
+                        Amount: $
+                        {(
+                          ((Number(ch.budget) || 0) *
+                            (Number(ch.productionInstallationPct) || 0)) /
+                          100
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    </div>
                   </div>
                 ))}
                 <button
