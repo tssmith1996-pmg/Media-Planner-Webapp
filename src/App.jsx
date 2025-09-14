@@ -28,6 +28,7 @@ import {
 } from 'firebase/auth'
 
 function App() {
+  const isDev = import.meta.env.DEV
   const [section, setSection] = useState('welcome')
   const [expandedPlan, setExpandedPlan] = useState(null)
   const [plans, setPlans] = useState([])
@@ -45,15 +46,27 @@ function App() {
   const [pendingGuest, setPendingGuest] = useState(false)
 
 
-const [form, setForm] = useState({
+  const clientOptions = ['Sportsbet', 'KenoGo', 'Swisse', 'Custom']
+
+  const [form, setForm] = useState({
+    client: clientOptions[0],
+    customClient: '',
     name: '',
     totalBudget: '',
-    startDate: '',
-    endDate: '',
     channels: [],
   })
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+
+  const demoOptions = ['Total People', 'M18-35', 'F25-54', 'M35-49', 'Custom']
+  const metricOptions = [
+    'Impressions',
+    'Clicks',
+    'Reach',
+    'Video Views',
+    'Cost Per Acquisition',
+    'Custom',
+  ]
 
 
   const handleSignIn = async (e) => {
@@ -101,6 +114,11 @@ const [form, setForm] = useState({
   }
 
   useEffect(() => {
+    if (isDev) {
+      setLoading(false)
+      setUserId('dev-user')
+      return
+    }
     if (!globalThis.__firebase_config) {
       setLoading(false)
       return
@@ -119,7 +137,6 @@ const [form, setForm] = useState({
       signInWithCustomToken(authInstance, token).catch(console.error)
     let unsubSnap
     const unsubAuth = onAuthStateChanged(authInstance, (user) => {
-
       if (user) {
         setUserId(user.uid)
         const colRef = collection(
@@ -151,7 +168,7 @@ const [form, setForm] = useState({
 
     // pendingGuest intentionally omitted from deps to avoid extra init cycle
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initKey, appId])
+  }, [initKey, appId, isDev])
 
 
   const validateBudget = (f) => {
@@ -179,6 +196,8 @@ const [form, setForm] = useState({
     setForm((f) => {
       const updated = [...f.channels]
       updated[index] = { ...updated[index], [field]: value }
+      if (field === 'demo' && value !== 'Custom') updated[index].customDemo = ''
+      if (field === 'metric' && value !== 'Custom') updated[index].customMetric = ''
       const newForm = { ...f, channels: updated }
       validateBudget(newForm)
       return newForm
@@ -191,7 +210,20 @@ const [form, setForm] = useState({
         ...f,
         channels: [
           ...f.channels,
-          { name: '', budget: '', metric: 'Impressions', value: '' },
+          {
+            name: '',
+            publisher: '',
+            adFormat: '',
+            size: '',
+            startDate: '',
+            endDate: '',
+            budget: '',
+            demo: 'Total People',
+            customDemo: '',
+            metric: 'Impressions',
+            customMetric: '',
+            value: '',
+          },
         ],
       }
       validateBudget(newForm)
@@ -201,66 +233,134 @@ const [form, setForm] = useState({
 
   const handleSavePlan = async (e) => {
     e.preventDefault()
-    if (!validateBudget(form) || !db || !userId) return
-    const colRef = collection(db, 'artifacts', appId, 'users', userId, 'mediaPlans')
-    await addDoc(colRef, {
+    if (!validateBudget(form)) return
+    const startDate = form.channels.reduce(
+      (min, ch) => (ch.startDate && (!min || ch.startDate < min) ? ch.startDate : min),
+      '',
+    )
+    const endDate = form.channels.reduce(
+      (max, ch) => (ch.endDate && (!max || ch.endDate > max) ? ch.endDate : max),
+      '',
+    )
+    const planData = {
+      client: form.client === 'Custom' ? form.customClient : form.client,
       name: form.name,
       totalBudget: Number(form.totalBudget),
-      startDate: form.startDate,
-      endDate: form.endDate,
+      startDate,
+      endDate,
       channels: form.channels.map((c) => ({
         name: c.name,
+        publisher: c.publisher,
+        adFormat: c.adFormat,
+        size: c.size,
+        startDate: c.startDate,
+        endDate: c.endDate,
         budget: Number(c.budget),
-        metric: c.metric,
+        demo: c.demo === 'Custom' ? c.customDemo : c.demo,
+        metric: c.metric === 'Custom' ? c.customMetric : c.metric,
         value: Number(c.value),
       })),
-    })
-    setForm({ name: '', totalBudget: '', startDate: '', endDate: '', channels: [] })
+    }
+    if (isDev) {
+      const newPlan = { id: Date.now().toString(), ...planData }
+      setPlans((p) => [...p, newPlan])
+    } else {
+      if (!db || !userId) return
+      const colRef = collection(db, 'artifacts', appId, 'users', userId, 'mediaPlans')
+      await addDoc(colRef, planData)
+    }
+    setForm({ client: clientOptions[0], customClient: '', name: '', totalBudget: '', channels: [] })
     setSection('plans')
   }
 
   const handleUpdatePlan = async (e) => {
     e.preventDefault()
-    if (!editingId || !validateBudget(form) || !db || !userId) return
-    const docRef = doc(
-      db,
-      'artifacts',
-      appId,
-      'users',
-      userId,
-      'mediaPlans',
-      editingId,
+    if (!editingId || !validateBudget(form)) return
+    const startDate = form.channels.reduce(
+      (min, ch) => (ch.startDate && (!min || ch.startDate < min) ? ch.startDate : min),
+      '',
     )
-    await updateDoc(docRef, {
+    const endDate = form.channels.reduce(
+      (max, ch) => (ch.endDate && (!max || ch.endDate > max) ? ch.endDate : max),
+      '',
+    )
+    const planData = {
+      client: form.client === 'Custom' ? form.customClient : form.client,
       name: form.name,
       totalBudget: Number(form.totalBudget),
-      startDate: form.startDate,
-      endDate: form.endDate,
+      startDate,
+      endDate,
       channels: form.channels.map((c) => ({
         name: c.name,
+        publisher: c.publisher,
+        adFormat: c.adFormat,
+        size: c.size,
+        startDate: c.startDate,
+        endDate: c.endDate,
         budget: Number(c.budget),
-        metric: c.metric,
+        demo: c.demo === 'Custom' ? c.customDemo : c.demo,
+        metric: c.metric === 'Custom' ? c.customMetric : c.metric,
         value: Number(c.value),
       })),
-    })
+    }
+    if (isDev) {
+      setPlans((p) =>
+        p.map((pl) => (pl.id === editingId ? { id: editingId, ...planData } : pl)),
+      )
+    } else {
+      if (!db || !userId) return
+      const docRef = doc(
+        db,
+        'artifacts',
+        appId,
+        'users',
+        userId,
+        'mediaPlans',
+        editingId,
+      )
+      await updateDoc(docRef, planData)
+    }
     setEditingId(null)
-    setForm({ name: '', totalBudget: '', startDate: '', endDate: '', channels: [] })
+    setForm({
+      client: clientOptions[0],
+      customClient: '',
+      name: '',
+      totalBudget: '',
+      channels: [],
+    })
     setSection('plans')
   }
 
   const handleEditPlan = (plan) => {
     setForm({
+      client: clientOptions.includes(plan.client) ? plan.client : 'Custom',
+      customClient: clientOptions.includes(plan.client) ? '' : plan.client,
       name: plan.name,
       totalBudget: plan.totalBudget,
-      startDate: plan.startDate,
-      endDate: plan.endDate,
-      channels: plan.channels,
+      channels: plan.channels.map((c) => ({
+        name: c.name,
+        publisher: c.publisher || '',
+        adFormat: c.adFormat || '',
+        size: c.size || '',
+        startDate: c.startDate || '',
+        endDate: c.endDate || '',
+        budget: c.budget,
+        demo: demoOptions.includes(c.demo) ? c.demo : 'Custom',
+        customDemo: demoOptions.includes(c.demo) ? '' : c.demo,
+        metric: metricOptions.includes(c.metric) ? c.metric : 'Custom',
+        customMetric: metricOptions.includes(c.metric) ? '' : c.metric,
+        value: c.value,
+      })),
     })
     setEditingId(plan.id)
     setSection('create')
   }
 
   const handleDeletePlan = async (planId) => {
+    if (isDev) {
+      setPlans((p) => p.filter((pl) => pl.id !== planId))
+      return
+    }
     if (!db || !userId) return
     const docRef = doc(
       db,
@@ -270,7 +370,6 @@ const [form, setForm] = useState({
       userId,
       'mediaPlans',
       planId,
-
     )
     await deleteDoc(docRef)
   }
@@ -308,10 +407,32 @@ const [form, setForm] = useState({
             >
 
               <div>
+                <label className="block text-sm font-medium">Client</label>
+                <select
+                  value={form.client}
+                  onChange={(e) => handleChange('client', e.target.value)}
+                  className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {clientOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                {form.client === 'Custom' && (
+                  <input
+                    type="text"
+                    placeholder="Custom Client"
+                    value={form.customClient}
+                    onChange={(e) => handleChange('customClient', e.target.value)}
+                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                )}
+              </div>
+              <div>
                 <label className="block text-sm font-medium">Campaign Name</label>
                 <input
                   type="text"
-
                   value={form.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -328,38 +449,12 @@ const [form, setForm] = useState({
                   required
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                <div>
-                  <label className="block text-sm font-medium">Start Date</label>
-                  <input
-                    type="date"
-
-                    value={form.startDate}
-                    onChange={(e) => handleChange('startDate', e.target.value)}
-                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    required
-
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">End Date</label>
-                  <input
-                    type="date"
-
-                    value={form.endDate}
-                    onChange={(e) => handleChange('endDate', e.target.value)}
-                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-              </div>
               <div>
                 <h3 className="text-xl font-semibold mb-2">Channels</h3>
                 {form.channels.map((ch, idx) => (
                   <div
                     key={idx}
-                    className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2"
+                    className="grid grid-cols-1 md:grid-cols-10 gap-2 mb-2"
                   >
                     <input
                       type="text"
@@ -367,6 +462,51 @@ const [form, setForm] = useState({
                       value={ch.name}
                       onChange={(e) =>
                         handleChannelChange(idx, 'name', e.target.value)
+                      }
+                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Publisher"
+                      value={ch.publisher}
+                      onChange={(e) =>
+                        handleChannelChange(idx, 'publisher', e.target.value)
+                      }
+                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Ad Format"
+                      value={ch.adFormat}
+                      onChange={(e) =>
+                        handleChannelChange(idx, 'adFormat', e.target.value)
+                      }
+                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Size"
+                      value={ch.size}
+                      onChange={(e) =>
+                        handleChannelChange(idx, 'size', e.target.value)
+                      }
+                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <input
+                      type="date"
+                      placeholder="Start Date"
+                      value={ch.startDate}
+                      onChange={(e) =>
+                        handleChannelChange(idx, 'startDate', e.target.value)
+                      }
+                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <input
+                      type="date"
+                      placeholder="End Date"
+                      value={ch.endDate}
+                      onChange={(e) =>
+                        handleChannelChange(idx, 'endDate', e.target.value)
                       }
                       className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -379,20 +519,63 @@ const [form, setForm] = useState({
                       }
                       className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
-                    <select
-                      value={ch.metric}
-                      onChange={(e) =>
-                        handleChannelChange(idx, 'metric', e.target.value)
-                      }
-                      className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option>Impressions</option>
-                      <option>Clicks</option>
-                      <option>Reach</option>
-                      <option>Video Views</option>
-                      <option>Cost Per Acquisition</option>
-                      <option>Custom</option>
-                    </select>
+                    <div>
+                      <select
+                        value={ch.demo}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'demo', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+                      >
+                        {demoOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                      {ch.demo === 'Custom' && (
+                        <input
+                          type="text"
+                          placeholder="Custom Demo"
+                          value={ch.customDemo}
+                          onChange={(e) =>
+                            handleChannelChange(idx, 'customDemo', e.target.value)
+                          }
+                          className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Target Metric</label>
+                      <select
+                        value={ch.metric}
+                        onChange={(e) =>
+                          handleChannelChange(idx, 'metric', e.target.value)
+                        }
+                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+                      >
+                        {metricOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                      {ch.metric === 'Custom' && (
+                        <input
+                          type="text"
+                          placeholder="Custom Metric Name"
+                          value={ch.customMetric}
+                          onChange={(e) =>
+                            handleChannelChange(
+                              idx,
+                              'customMetric',
+                              e.target.value,
+                            )
+                          }
+                          className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+                        />
+                      )}
+                    </div>
                     <input
                       type="number"
                       placeholder="Target Value"
@@ -432,6 +615,7 @@ const [form, setForm] = useState({
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="p-2 border-b">Campaign Name</th>
+                    <th className="p-2 border-b">Client</th>
                     <th className="p-2 border-b">Total Budget</th>
                     <th className="p-2 border-b">Start Date</th>
                     <th className="p-2 border-b">End Date</th>
@@ -443,6 +627,7 @@ const [form, setForm] = useState({
                     <Fragment key={plan.id}>
                       <tr className="hover:bg-gray-50 transition-colors">
                         <td className="p-2 border-b">{plan.name}</td>
+                        <td className="p-2 border-b">{plan.client}</td>
                         <td className="p-2 border-b">${plan.totalBudget.toLocaleString()}</td>
                         <td className="p-2 border-b">{plan.startDate}</td>
                         <td className="p-2 border-b">{plan.endDate}</td>
@@ -471,12 +656,18 @@ const [form, setForm] = useState({
                       </tr>
                       {expandedPlan === plan.id && (
                         <tr className="bg-gray-50">
-                          <td colSpan={5} className="p-2 border-b">
+                          <td colSpan={6} className="p-2 border-b">
                             <div className="overflow-x-auto">
                               <table className="min-w-full text-sm text-left">
                                 <thead>
                                   <tr className="border-b">
                                     <th className="p-1">Channel</th>
+                                    <th className="p-1">Publisher</th>
+                                    <th className="p-1">Ad Format</th>
+                                    <th className="p-1">Size</th>
+                                    <th className="p-1">Start</th>
+                                    <th className="p-1">End</th>
+                                    <th className="p-1">Demo</th>
                                     <th className="p-1">Budget</th>
                                     <th className="p-1">Target Metric</th>
                                     <th className="p-1">Target Value</th>
@@ -486,6 +677,12 @@ const [form, setForm] = useState({
                                   {plan.channels.map((ch, idx) => (
                                     <tr key={idx} className="border-b last:border-0">
                                       <td className="p-1">{ch.name}</td>
+                                      <td className="p-1">{ch.publisher}</td>
+                                      <td className="p-1">{ch.adFormat}</td>
+                                      <td className="p-1">{ch.size}</td>
+                                      <td className="p-1">{ch.startDate}</td>
+                                      <td className="p-1">{ch.endDate}</td>
+                                      <td className="p-1">{ch.demo}</td>
                                       <td className="p-1">${ch.budget.toLocaleString()}</td>
                                       <td className="p-1">{ch.metric}</td>
                                       <td className="p-1">{ch.value}</td>
