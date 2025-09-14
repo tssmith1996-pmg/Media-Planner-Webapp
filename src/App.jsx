@@ -47,16 +47,26 @@ function App() {
 
 
   const clientOptions = ['Sportsbet', 'KenoGo', 'Swisse', 'Custom']
+  const currencyOptions = ['USD', 'AUD', 'EUR', 'GBP']
+  const currencySymbols = { USD: '$', AUD: '$', EUR: '€', GBP: '£' }
+  const formatCurrency = (value, currency) =>
+    new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(
+      Number(value) || 0,
+    )
 
   const [form, setForm] = useState({
     client: clientOptions[0],
     customClient: '',
     name: '',
-    totalBudget: '',
+    currency: currencyOptions[0],
+    totalBudget: 0,
+    goalKpi: '',
+    campaignType: '',
+    overallGoal: '',
     channels: [],
   })
   const [editingId, setEditingId] = useState(null)
-  const [error, setError] = useState('')
+  const [expandedChannels, setExpandedChannels] = useState([])
 
   const demoOptions = ['Total People', 'M18-35', 'F25-54', 'M35-49', 'Custom']
   const metricOptions = [
@@ -171,25 +181,8 @@ function App() {
   }, [initKey, appId, isDev])
 
 
-  const validateBudget = (f) => {
-    const allocated = f.channels.reduce(
-      (sum, ch) => sum + Number(ch.budget || 0),
-      0,
-    )
-    if (allocated > Number(f.totalBudget || 0)) {
-      setError('Allocated budget exceeds total budget')
-      return false
-    }
-    setError('')
-    return true
-  }
-
   const handleChange = (field, value) => {
-    setForm((f) => {
-      const updated = { ...f, [field]: value }
-      validateBudget(updated)
-      return updated
-    })
+    setForm((f) => ({ ...f, [field]: value }))
   }
 
   const handleChannelChange = (index, field, value) => {
@@ -198,44 +191,62 @@ function App() {
       updated[index] = { ...updated[index], [field]: value }
       if (field === 'demo' && value !== 'Custom') updated[index].customDemo = ''
       if (field === 'metric' && value !== 'Custom') updated[index].customMetric = ''
-      const newForm = { ...f, channels: updated }
-      validateBudget(newForm)
-      return newForm
+      const totalBudget = updated.reduce(
+        (sum, ch) => sum + Number(ch.budget || 0),
+        0,
+      )
+      return { ...f, channels: updated, totalBudget }
     })
+  }
+
+  const toggleChannelDetails = (index) => {
+    setExpandedChannels((prev) =>
+      prev.includes(index)
+        ? prev.filter((i) => i !== index)
+        : [...prev, index],
+    )
   }
 
   const handleAddChannel = () => {
     setForm((f) => {
-      const newForm = {
-        ...f,
-        channels: [
-          ...f.channels,
-          {
-            name: '',
-            publisher: '',
-            adFormat: '',
-            size: '',
-            startDate: '',
-            endDate: '',
-            budget: '',
-            demo: 'Total People',
-            customDemo: '',
-            metric: 'Impressions',
-            customMetric: '',
-            value: '',
-            mediaCommissionPct: '',
-            productionInstallationPct: '',
-          },
-        ],
-      }
-      validateBudget(newForm)
-      return newForm
+      const channels = [
+        ...f.channels,
+        {
+          name: '',
+          publisher: '',
+          adFormat: '',
+          size: '',
+          startDate: '',
+          endDate: '',
+          budget: '',
+          demo: 'Total People',
+          customDemo: '',
+          metric: 'Impressions',
+          customMetric: '',
+          value: '',
+          mediaCommissionPct: '',
+          productionInstallationPct: '',
+          daypart: '',
+          spotLength: '',
+          isProgrammatic: false,
+          targetingDetails: '',
+          impressionsPlanned: '',
+          clicksPlanned: '',
+          cpmPlanned: '',
+          cpePlanned: '',
+          cpcPlanned: '',
+        },
+      ]
+      const totalBudget = channels.reduce(
+        (sum, ch) => sum + Number(ch.budget || 0),
+        0,
+      )
+      return { ...f, channels, totalBudget }
     })
   }
 
   const handleSavePlan = async (e) => {
     e.preventDefault()
-    if (!validateBudget(form)) return
     const startDate = form.channels.reduce(
       (min, ch) => (ch.startDate && (!min || ch.startDate < min) ? ch.startDate : min),
       '',
@@ -247,9 +258,13 @@ function App() {
     const planData = {
       client: form.client === 'Custom' ? form.customClient : form.client,
       name: form.name,
+      currency: form.currency,
       totalBudget: Number(form.totalBudget),
       startDate,
       endDate,
+      goalKpi: form.goalKpi,
+      campaignType: form.campaignType,
+      overallGoal: form.overallGoal,
       channels: form.channels.map((c) => ({
         name: c.name,
         publisher: c.publisher,
@@ -270,6 +285,15 @@ function App() {
           ((Number(c.budget) || 0) *
             (Number(c.productionInstallationPct) || 0)) /
           100,
+        daypart: c.daypart,
+        spotLength: Number(c.spotLength) || 0,
+        isProgrammatic: !!c.isProgrammatic,
+        targetingDetails: c.targetingDetails,
+        impressionsPlanned: Number(c.impressionsPlanned) || 0,
+        clicksPlanned: Number(c.clicksPlanned) || 0,
+        cpmPlanned: Number(c.cpmPlanned) || 0,
+        cpePlanned: Number(c.cpePlanned) || 0,
+        cpcPlanned: Number(c.cpcPlanned) || 0,
       })),
     }
     if (isDev) {
@@ -280,13 +304,24 @@ function App() {
       const colRef = collection(db, 'artifacts', appId, 'users', userId, 'mediaPlans')
       await addDoc(colRef, planData)
     }
-    setForm({ client: clientOptions[0], customClient: '', name: '', totalBudget: '', channels: [] })
+    setForm({
+      client: clientOptions[0],
+      customClient: '',
+      name: '',
+      currency: currencyOptions[0],
+      totalBudget: 0,
+      goalKpi: '',
+      campaignType: '',
+      overallGoal: '',
+      channels: [],
+    })
+    setExpandedChannels([])
     setSection('plans')
   }
 
   const handleUpdatePlan = async (e) => {
     e.preventDefault()
-    if (!editingId || !validateBudget(form)) return
+    if (!editingId) return
     const startDate = form.channels.reduce(
       (min, ch) => (ch.startDate && (!min || ch.startDate < min) ? ch.startDate : min),
       '',
@@ -298,9 +333,13 @@ function App() {
     const planData = {
       client: form.client === 'Custom' ? form.customClient : form.client,
       name: form.name,
+      currency: form.currency,
       totalBudget: Number(form.totalBudget),
       startDate,
       endDate,
+      goalKpi: form.goalKpi,
+      campaignType: form.campaignType,
+      overallGoal: form.overallGoal,
       channels: form.channels.map((c) => ({
         name: c.name,
         publisher: c.publisher,
@@ -321,6 +360,15 @@ function App() {
           ((Number(c.budget) || 0) *
             (Number(c.productionInstallationPct) || 0)) /
           100,
+        daypart: c.daypart,
+        spotLength: Number(c.spotLength) || 0,
+        isProgrammatic: !!c.isProgrammatic,
+        targetingDetails: c.targetingDetails,
+        impressionsPlanned: Number(c.impressionsPlanned) || 0,
+        clicksPlanned: Number(c.clicksPlanned) || 0,
+        cpmPlanned: Number(c.cpmPlanned) || 0,
+        cpePlanned: Number(c.cpePlanned) || 0,
+        cpcPlanned: Number(c.cpcPlanned) || 0,
       })),
     }
     if (isDev) {
@@ -345,9 +393,14 @@ function App() {
       client: clientOptions[0],
       customClient: '',
       name: '',
-      totalBudget: '',
+      currency: currencyOptions[0],
+      totalBudget: 0,
+      goalKpi: '',
+      campaignType: '',
+      overallGoal: '',
       channels: [],
     })
+    setExpandedChannels([])
     setSection('plans')
   }
 
@@ -356,7 +409,14 @@ function App() {
       client: clientOptions.includes(plan.client) ? plan.client : 'Custom',
       customClient: clientOptions.includes(plan.client) ? '' : plan.client,
       name: plan.name,
-      totalBudget: plan.totalBudget,
+      currency: plan.currency || currencyOptions[0],
+      totalBudget: plan.channels.reduce(
+        (sum, c) => sum + Number(c.budget || 0),
+        0,
+      ),
+      goalKpi: plan.goalKpi || '',
+      campaignType: plan.campaignType || '',
+      overallGoal: plan.overallGoal || '',
       channels: plan.channels.map((c) => ({
         name: c.name,
         publisher: c.publisher || '',
@@ -372,9 +432,19 @@ function App() {
         value: c.value,
         mediaCommissionPct: c.mediaCommissionPct || '',
         productionInstallationPct: c.productionInstallationPct || '',
+        daypart: c.daypart || '',
+        spotLength: c.spotLength || '',
+        isProgrammatic: c.isProgrammatic || false,
+        targetingDetails: c.targetingDetails || '',
+        impressionsPlanned: c.impressionsPlanned || '',
+        clicksPlanned: c.clicksPlanned || '',
+        cpmPlanned: c.cpmPlanned || '',
+        cpePlanned: c.cpePlanned || '',
+        cpcPlanned: c.cpcPlanned || '',
       })),
     })
     setEditingId(plan.id)
+    setExpandedChannels([])
     setSection('create')
   }
 
@@ -463,22 +533,73 @@ function App() {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium">Total Budget</label>
-                <input
-                  type="number"
-                  value={form.totalBudget}
-                  onChange={(e) => handleChange('totalBudget', e.target.value)}
-                  className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">Currency</label>
+                  <select
+                    value={form.currency}
+                    onChange={(e) => handleChange('currency', e.target.value)}
+                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {currencyOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Total Budget</label>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
+                      {currencySymbols[form.currency]}
+                    </span>
+                    <input
+                      type="number"
+                      value={form.totalBudget}
+                      readOnly
+                      className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm bg-gray-100 pl-6"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">Goal KPI</label>
+                  <input
+                    type="text"
+                    value={form.goalKpi}
+                    onChange={(e) => handleChange('goalKpi', e.target.value)}
+                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Campaign Type</label>
+                  <input
+                    type="text"
+                    value={form.campaignType}
+                    onChange={(e) => handleChange('campaignType', e.target.value)}
+                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Overall Goal</label>
+                  <input
+                    type="text"
+                    value={form.overallGoal}
+                    onChange={(e) => handleChange('overallGoal', e.target.value)}
+                    className="mt-1 p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
               </div>
               <div>
                 <h3 className="text-xl font-semibold mb-2">Channels</h3>
                 {form.channels.map((ch, idx) => (
                   <div
                     key={idx}
-                    className="grid grid-cols-1 gap-2 mb-2 md:[grid-template-columns:repeat(14,minmax(0,1fr))]"
+                    className={`grid grid-cols-1 gap-2 mb-2 md:[grid-template-columns:repeat(14,minmax(0,1fr))] ${
+                      idx > 0 ? 'border-t border-gray-200 pt-4 mt-4' : ''
+                    }`}
                   >
                     <div>
                       <label className="block text-sm font-medium">Channel Name</label>
@@ -548,14 +669,19 @@ function App() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium">Budget Allocation</label>
-                      <input
-                        type="number"
-                        value={ch.budget}
-                        onChange={(e) =>
-                          handleChannelChange(idx, 'budget', e.target.value)
-                        }
-                        className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
+                          {currencySymbols[form.currency]}
+                        </span>
+                        <input
+                          type="number"
+                          value={ch.budget}
+                          onChange={(e) =>
+                            handleChannelChange(idx, 'budget', e.target.value)
+                          }
+                          className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pl-6"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium">Demo</label>
@@ -645,15 +771,13 @@ function App() {
                         className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                       />
                       <p className="text-sm text-gray-600 mt-1">
-                        Amount: $
-                        {(
+                        Amount:{' '}
+                        {formatCurrency(
                           ((Number(ch.budget) || 0) *
                             (Number(ch.mediaCommissionPct) || 0)) /
-                          100
-                        ).toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                            100,
+                          form.currency,
+                        )}
                       </p>
                     </div>
                     <div>
@@ -673,16 +797,185 @@ function App() {
                         className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                       />
                       <p className="text-sm text-gray-600 mt-1">
-                        Amount: $
-                        {(
+                        Amount:{' '}
+                        {formatCurrency(
                           ((Number(ch.budget) || 0) *
                             (Number(ch.productionInstallationPct) || 0)) /
-                          100
-                        ).toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                            100,
+                          form.currency,
+                        )}
                       </p>
+                    </div>
+                    <div className="col-span-full">
+                      <button
+                        type="button"
+                        onClick={() => toggleChannelDetails(idx)}
+                        className="mt-2 px-2 py-1 bg-gray-200 rounded"
+                      >
+                        {expandedChannels.includes(idx)
+                          ? 'Hide Details'
+                          : 'More Details'}
+                      </button>
+                      {expandedChannels.includes(idx) && (
+                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium">Daypart</label>
+                            <input
+                              type="text"
+                              value={ch.daypart}
+                              onChange={(e) =>
+                                handleChannelChange(idx, 'daypart', e.target.value)
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Spot Length (sec)
+                            </label>
+                            <input
+                              type="number"
+                              value={ch.spotLength}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'spotLength',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center mt-6">
+                            <input
+                              type="checkbox"
+                              checked={ch.isProgrammatic || false}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'isProgrammatic',
+                                  e.target.checked,
+                                )
+                              }
+                              className="mr-2"
+                            />
+                            <label className="text-sm font-medium">
+                              Programmatic Buy
+                            </label>
+                          </div>
+                          <div className="md:col-span-3">
+                            <label className="block text-sm font-medium">
+                              Targeting Details
+                            </label>
+                            <input
+                              type="text"
+                              value={ch.targetingDetails}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'targetingDetails',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Impressions Planned
+                            </label>
+                            <input
+                              type="number"
+                              value={ch.impressionsPlanned}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'impressionsPlanned',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Clicks Planned
+                            </label>
+                            <input
+                              type="number"
+                              value={ch.clicksPlanned}
+                              onChange={(e) =>
+                                handleChannelChange(
+                                  idx,
+                                  'clicksPlanned',
+                                  e.target.value,
+                                )
+                              }
+                              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">CPM Planned</label>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
+                                {currencySymbols[form.currency]}
+                              </span>
+                              <input
+                                type="number"
+                                value={ch.cpmPlanned}
+                                onChange={(e) =>
+                                  handleChannelChange(
+                                    idx,
+                                    'cpmPlanned',
+                                    e.target.value,
+                                  )
+                                }
+                                className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pl-6"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">CPE Planned</label>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
+                                {currencySymbols[form.currency]}
+                              </span>
+                              <input
+                                type="number"
+                                value={ch.cpePlanned}
+                                onChange={(e) =>
+                                  handleChannelChange(
+                                    idx,
+                                    'cpePlanned',
+                                    e.target.value,
+                                  )
+                                }
+                                className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pl-6"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">CPC Planned</label>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
+                                {currencySymbols[form.currency]}
+                              </span>
+                              <input
+                                type="number"
+                                value={ch.cpcPlanned}
+                                onChange={(e) =>
+                                  handleChannelChange(
+                                    idx,
+                                    'cpcPlanned',
+                                    e.target.value,
+                                  )
+                                }
+                                className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pl-6"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -694,11 +987,9 @@ function App() {
                   Add Channel
                 </button>
               </div>
-              {error && <p className="text-red-600">{error}</p>}
               <button
                 type="submit"
-                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-md shadow hover:from-blue-600 hover:to-indigo-700 transition disabled:opacity-50"
-                disabled={!!error}
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-md shadow hover:from-blue-600 hover:to-indigo-700 transition"
               >
                 {editingId ? 'Update Plan' : 'Save Plan'}
               </button>
@@ -727,7 +1018,9 @@ function App() {
                       <tr className="hover:bg-gray-50 transition-colors">
                         <td className="p-2 border-b">{plan.name}</td>
                         <td className="p-2 border-b">{plan.client}</td>
-                        <td className="p-2 border-b">${plan.totalBudget.toLocaleString()}</td>
+                        <td className="p-2 border-b">
+                          {formatCurrency(plan.totalBudget, plan.currency || 'USD')}
+                        </td>
                         <td className="p-2 border-b">{plan.startDate}</td>
                         <td className="p-2 border-b">{plan.endDate}</td>
                         <td className="p-2 border-b space-x-2">
@@ -770,6 +1063,15 @@ function App() {
                                     <th className="p-1">Budget</th>
                                     <th className="p-1">Target Metric</th>
                                     <th className="p-1">Target Value</th>
+                                    <th className="p-1">Daypart</th>
+                                    <th className="p-1">Spot Length</th>
+                                    <th className="p-1">Programmatic</th>
+                                    <th className="p-1">Targeting</th>
+                                    <th className="p-1">Impressions</th>
+                                    <th className="p-1">Clicks</th>
+                                    <th className="p-1">CPM</th>
+                                    <th className="p-1">CPE</th>
+                                    <th className="p-1">CPC</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -782,9 +1084,26 @@ function App() {
                                       <td className="p-1">{ch.startDate}</td>
                                       <td className="p-1">{ch.endDate}</td>
                                       <td className="p-1">{ch.demo}</td>
-                                      <td className="p-1">${ch.budget.toLocaleString()}</td>
+                                      <td className="p-1">
+                                        {formatCurrency(ch.budget, plan.currency || 'USD')}
+                                      </td>
                                       <td className="p-1">{ch.metric}</td>
                                       <td className="p-1">{ch.value}</td>
+                                      <td className="p-1">{ch.daypart}</td>
+                                      <td className="p-1">{ch.spotLength}</td>
+                                      <td className="p-1">{ch.isProgrammatic ? 'Yes' : 'No'}</td>
+                                      <td className="p-1">{ch.targetingDetails}</td>
+                                      <td className="p-1">{ch.impressionsPlanned}</td>
+                                      <td className="p-1">{ch.clicksPlanned}</td>
+                                      <td className="p-1">
+                                        {formatCurrency(ch.cpmPlanned, plan.currency || 'USD')}
+                                      </td>
+                                      <td className="p-1">
+                                        {formatCurrency(ch.cpePlanned, plan.currency || 'USD')}
+                                      </td>
+                                      <td className="p-1">
+                                        {formatCurrency(ch.cpcPlanned, plan.currency || 'USD')}
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>

@@ -76,3 +76,55 @@ values automatically, so you can try the app without editing `index.html` first.
 ```bash
 npm run build
 ```
+
+## Data Model
+
+Media plans are stored as documents with the following structure:
+
+```
+{
+  client: string,
+  name: string,
+  currency: string,
+  totalBudget: number,
+  goalKpi: string,
+  campaignType: string,
+  overallGoal: string,
+  startDate: string,
+  endDate: string,
+  channels: [
+    {
+      name: string,
+      publisher: string,
+      adFormat: string,
+      size: string,
+      startDate: string,
+      endDate: string,
+      budget: number,
+      demo: string,
+      metric: string,
+      value: number,
+      mediaCommissionPct: number,
+      mediaCommissionAmount: number,
+      productionInstallationPct: number,
+      productionInstallationAmount: number,
+      daypart: string,
+      spotLength: number,
+      isProgrammatic: boolean,
+      targetingDetails: string,
+      impressionsPlanned: number,
+      clicksPlanned: number,
+      cpmPlanned: number,
+      cpePlanned: number,
+      cpcPlanned: number
+    }
+  ]
+}
+```
+
+The `totalBudget` field is automatically calculated as the sum of all channel budgets.
+
+Additional channel details are hidden by default in the plan form and can be
+revealed by expanding the respective line item.
+
+All budget and cost values are stored in the selected plan currency.
