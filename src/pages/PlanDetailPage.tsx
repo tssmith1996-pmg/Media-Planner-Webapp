@@ -1,45 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  usePlan,
-  useMutatePlan,
-  useSubmitPlan,
-  useApprovePlan,
-  useRejectPlan,
-  useRevertPlan,
-  useDuplicatePlan,
-} from '@/api/plans';
+import { usePlan, useApprovePlan, useRejectPlan, useRevertPlan } from '@/api/plans';
 import { GoalKPIBar } from '@/components/GoalKPIBar';
 import { ChannelTable } from '@/components/ChannelTable';
-import { BudgetAllocator } from '@/components/BudgetAllocator';
 import { SummarySidebar } from '@/components/SummarySidebar';
 import { PacingWarnings } from '@/components/PacingWarnings';
-import { PlanTitleBar } from '@/components/PlanTitleBar';
 import { AuditDrawer } from '@/components/AuditDrawer';
-import { ExportDialog } from '@/components/ExportDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/ui/Button';
-import { useUser } from '@/auth/useUser';
+import { useUser, canApprove } from '@/auth/useUser';
 
-export function MediaPlanningPage() {
+export function PlanDetailPage() {
   const params = useParams();
   const navigate = useNavigate();
   const { data: plan, isLoading } = usePlan(params.id);
-  const mutatePlan = useMutatePlan();
-  const submitPlan = useSubmitPlan();
   const approvePlan = useApprovePlan();
   const rejectPlan = useRejectPlan();
   const revertPlan = useRevertPlan();
-  const duplicatePlan = useDuplicatePlan();
   const { user } = useUser();
 
-  const [exportOpen, setExportOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
-
-  const editingDisabled = plan?.status !== 'Draft';
-
-  const pageTitle = useMemo(() => plan?.meta.name ?? 'Plan', [plan?.meta.name]);
 
   if (isLoading) {
     return <p className="text-sm text-slate-500">Loading plan...</p>;
@@ -54,28 +35,11 @@ export function MediaPlanningPage() {
     );
   }
 
-  const handleBudgetChange = (tacticId: string, budget: number) => {
-    if (editingDisabled) return;
-    const next = {
-      ...plan,
-      tactics: plan.tactics.map((tactic) => (tactic.id === tacticId ? { ...tactic, budget } : tactic)),
-    };
-    mutatePlan.mutate(next);
-  };
-
-  const handleSubmit = async () => {
-    await submitPlan.mutateAsync({ id: plan.id, actor: user.name });
-  };
-
   const handleApprove = async () => {
     await approvePlan.mutateAsync({ id: plan.id, actor: user.name });
   };
 
   const handleReject = async () => {
-    setRejectOpen(true);
-  };
-
-  const confirmReject = async () => {
     if (!rejectComment.trim()) return;
     await rejectPlan.mutateAsync({ id: plan.id, actor: user.name, comment: rejectComment });
     setRejectComment('');
@@ -86,41 +50,38 @@ export function MediaPlanningPage() {
     await revertPlan.mutateAsync({ id: plan.id, actor: user.name });
   };
 
-  const handleDuplicate = async () => {
-    const newPlan = await duplicatePlan.mutateAsync({ id: plan.id, actor: user.name });
-    if (newPlan) {
-      navigate(`/plan/${newPlan.id}`);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold text-slate-900">{pageTitle}</h2>
-        <Button variant="secondary" onClick={() => setExportOpen(true)}>
-          Export Block Plan
+        <h2 className="text-2xl font-semibold text-slate-900">{plan.meta.name}</h2>
+        <Button variant="secondary" onClick={() => navigate(`/plan/${plan.id}`)}>
+          Open Editor
         </Button>
       </div>
-      <PlanTitleBar
-        plan={plan}
-        editingDisabled={Boolean(editingDisabled)}
-        onSubmit={handleSubmit}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        onRevert={handleRevert}
-        onDuplicate={handleDuplicate}
-      />
       <GoalKPIBar plan={plan} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr,1fr]">
         <div className="space-y-4">
-          <ChannelTable plan={plan} readOnly={editingDisabled} />
-          <BudgetAllocator plan={plan} onBudgetChange={handleBudgetChange} readOnly={editingDisabled} />
+          <ChannelTable plan={plan} readOnly />
           <PacingWarnings plan={plan} />
           <AuditDrawer events={plan.audit} />
         </div>
         <SummarySidebar plan={plan} />
       </div>
-      <ExportDialog plan={plan} open={exportOpen} onClose={() => setExportOpen(false)} />
+      {canApprove(user) ? (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="primary" onClick={handleApprove}>
+            Approve
+          </Button>
+          <Button variant="danger" onClick={() => setRejectOpen(true)}>
+            Reject
+          </Button>
+          {plan.status === 'Rejected' ? (
+            <Button variant="secondary" onClick={handleRevert}>
+              Revert to Draft
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       <ConfirmDialog
         title="Reject Plan"
         description="Provide feedback for the planner."
@@ -128,7 +89,7 @@ export function MediaPlanningPage() {
         destructive
         confirmText="Reject"
         onCancel={() => setRejectOpen(false)}
-        onConfirm={confirmReject}
+        onConfirm={handleReject}
         body={
           <textarea
             className="mt-2 w-full rounded-md border border-slate-300 p-2 text-sm"
