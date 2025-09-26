@@ -6,35 +6,44 @@ export function SummarySidebar({ plan }: { plan: Plan }) {
   const totals = calculatePlanTotals(plan);
 
   return (
-    <aside className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div>
-        <h3 className="text-sm font-semibold text-slate-700">Plan Summary</h3>
-        <p className="text-xs text-slate-500">Snapshot of spend and mix.</p>
+    <aside className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="space-y-1">
+        <h2 className="text-base font-semibold text-slate-900">Plan Summary</h2>
+        <p className="text-sm text-slate-500">Snapshot of spend, pace, and channel mix.</p>
       </div>
-      <div className="space-y-2 text-sm">
-        <div className="flex items-center justify-between">
-          <span>Total Budget</span>
-          <span className="font-semibold">{currencyFormatter.format(totals.totalBudget)}</span>
+      <dl className="space-y-3 text-sm">
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-slate-500">Total Budget</dt>
+          <dd className="text-right font-semibold text-slate-900">
+            {currencyFormatter.format(totals.totalBudget)}
+          </dd>
         </div>
-        <div className="flex items-center justify-between">
-          <span>Impressions</span>
-          <span className="font-semibold">{currencyFormatter.format(totals.totalImpressions).replace('$', '')}</span>
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-slate-500">Impressions</dt>
+          <dd className="text-right font-semibold text-slate-900">
+            {currencyFormatter.format(totals.totalImpressions).replace('$', '')}
+          </dd>
         </div>
-        <div className="flex items-center justify-between">
-          <span>Blended CPM</span>
-          <span className="font-semibold">{currencyFormatter.format(totals.cpm)}</span>
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-slate-500">Blended CPM</dt>
+          <dd className="text-right font-semibold text-slate-900">
+            {currencyFormatter.format(totals.cpm)}
+          </dd>
         </div>
-      </div>
-      <div>
-        <h4 className="text-xs uppercase tracking-wide text-slate-500">Channel Mix</h4>
-        <ul className="mt-2 space-y-1 text-sm">
+      </dl>
+      <div className="space-y-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Channel Mix</h3>
+        <ul className="space-y-2 text-sm">
           {totals.channels.map((channel) => {
             const share = totals.totalBudget === 0 ? 0 : channel.budget / totals.totalBudget;
             return (
-              <li key={channel.channel} className="flex items-center justify-between">
-                <span>{channel.channel}</span>
-                <span>
-                  {currencyFormatter.format(channel.budget)} • {percentFormatter.format(share)}
+              <li key={channel.channel} className="flex items-center justify-between gap-4">
+                <span className="text-slate-600">{channel.channel}</span>
+                <span className="text-right font-medium text-slate-900">
+                  {currencyFormatter.format(channel.budget)}
+                  <span className="ml-2 text-xs font-medium text-slate-500">
+                    {percentFormatter.format(share)}
+                  </span>
                 </span>
               </li>
             );
