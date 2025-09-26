@@ -4,6 +4,8 @@ export const ENV = {
     import.meta.env.VITE_USE_LOCAL_ONLY === 'true' || import.meta.env.MODE !== 'production'
       ? 'local'
       : 'firebase',
+  defaultOrgId: import.meta.env.VITE_FIREBASE_DEFAULT_ORG_ID ?? 'demo-org',
+  defaultWorkspaceId: import.meta.env.VITE_FIREBASE_DEFAULT_WORKSPACE_ID ?? 'demo-workspace',
 } as const;
 
 export type StorageMode = typeof ENV.storage;

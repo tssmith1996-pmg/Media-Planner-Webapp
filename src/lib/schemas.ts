@@ -37,6 +37,7 @@ export const tacticSchema = z
     goalClicks: z.number().nonnegative().optional(),
     goalConversions: z.number().nonnegative().optional(),
     notes: z.string().optional(),
+    targetKpis: z.record(z.unknown()).default({}),
   })
   .superRefine((value, ctx) => {
     if (new Date(value.endDate) < new Date(value.startDate)) {
