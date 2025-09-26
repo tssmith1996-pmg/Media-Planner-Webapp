@@ -142,3 +142,19 @@ SVG file.
 ### Plan Builder Form
 
 [![Plan builder form mockup](docs/ui-mockups/plan-builder.svg)](docs/ui-mockups/plan-builder.svg)
+
+## UI QA Checklist
+
+Use the checklist below to verify the refreshed layouts after pulling the latest
+changes:
+
+- Confirm the layout scales cleanly at 320px, 768px, 1024px, and 1280px without
+  horizontal scrolling.
+- Ensure the primary actions remain prominent and visible within the initial
+  viewport.
+- Check that heading levels progress sequentially and body copy stays within a
+  comfortable 65–75 character line length.
+- Tab through interactive elements to verify consistent focus rings and
+  accessible form spacing.
+- Review form sections for aligned labels and supporting text, and confirm there
+  are no regressions in functionality.
