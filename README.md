@@ -123,3 +123,21 @@ Media plans are stored as documents with the following structure:
 
 Additional channel details are hidden by default in the plan form and can be
 revealed by expanding the respective line item.
+
+## UI Mockups
+
+The simplified SVG diagrams below illustrate the main screens so you can quickly
+understand the layout without running the app. Click any image to open the raw
+SVG file.
+
+### Authentication Screen
+
+[![Authentication screen mockup](docs/ui-mockups/authentication.svg)](docs/ui-mockups/authentication.svg)
+
+### Dashboard Overview
+
+[![Dashboard layout mockup](docs/ui-mockups/dashboard.svg)](docs/ui-mockups/dashboard.svg)
+
+### Plan Builder Form
+
+[![Plan builder form mockup](docs/ui-mockups/plan-builder.svg)](docs/ui-mockups/plan-builder.svg)

@@ -1,0 +1,15 @@
+<svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="authTitle authDesc">
+  <title id="authTitle">Authentication screen mockup</title>
+  <desc id="authDesc">Two column layout showing branding card and sign-in form</desc>
+  <rect width="640" height="360" rx="16" fill="#f1f5f9"/>
+  <rect x="24" y="24" width="280" height="312" rx="12" fill="#2563eb" opacity="0.16"/>
+  <text x="48" y="80" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#1e293b">Media Planner</text>
+  <text x="48" y="120" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">Plan smarter media buys with a unified dashboard.</text>
+  <rect x="332" y="64" width="276" height="224" rx="12" fill="#ffffff" stroke="#cbd5f5"/>
+  <rect x="356" y="104" width="228" height="32" rx="6" fill="#e2e8f0"/>
+  <rect x="356" y="152" width="228" height="32" rx="6" fill="#e2e8f0"/>
+  <rect x="356" y="200" width="228" height="40" rx="8" fill="#2563eb"/>
+  <text x="368" y="224" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#ffffff">Continue as Guest</text>
+  <text x="356" y="92" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#475569">Email</text>
+  <text x="356" y="140" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#475569">Password</text>
+</svg>
