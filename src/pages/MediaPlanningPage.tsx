@@ -94,51 +94,62 @@ export function MediaPlanningPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold text-slate-900">{pageTitle}</h2>
-        <Button variant="secondary" onClick={() => setExportOpen(true)}>
-          Export Block Plan
-        </Button>
-      </div>
-      <PlanTitleBar
-        plan={plan}
-        editingDisabled={Boolean(editingDisabled)}
-        onSubmit={handleSubmit}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        onRevert={handleRevert}
-        onDuplicate={handleDuplicate}
-      />
-      <GoalKPIBar plan={plan} />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr,1fr]">
-        <div className="space-y-4">
-          <ChannelTable plan={plan} readOnly={editingDisabled} />
-          <BudgetAllocator plan={plan} onBudgetChange={handleBudgetChange} readOnly={editingDisabled} />
-          <PacingWarnings plan={plan} />
-          <AuditDrawer events={plan.audit} />
+    <main className="container mx-auto max-w-7xl px-4 py-6 lg:py-8">
+      <div className="space-y-6">
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-semibold text-slate-900">{pageTitle}</h1>
+            <p className="text-sm text-slate-500 sm:max-w-2xl">
+              Adjust channel budgets, track pacing, and share plans for approval.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => setExportOpen(true)}
+            className="self-start lg:self-auto"
+          >
+            Export Block Plan
+          </Button>
+        </header>
+        <PlanTitleBar
+          plan={plan}
+          editingDisabled={Boolean(editingDisabled)}
+          onSubmit={handleSubmit}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          onRevert={handleRevert}
+          onDuplicate={handleDuplicate}
+        />
+        <GoalKPIBar plan={plan} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            <ChannelTable plan={plan} readOnly={editingDisabled} />
+            <BudgetAllocator plan={plan} onBudgetChange={handleBudgetChange} readOnly={editingDisabled} />
+            <PacingWarnings plan={plan} />
+            <AuditDrawer events={plan.audit} />
+          </div>
+          <SummarySidebar plan={plan} />
         </div>
-        <SummarySidebar plan={plan} />
+        <ExportDialog plan={plan} open={exportOpen} onClose={() => setExportOpen(false)} />
+        <ConfirmDialog
+          title="Reject Plan"
+          description="Provide feedback for the planner."
+          open={rejectOpen}
+          destructive
+          confirmText="Reject"
+          onCancel={() => setRejectOpen(false)}
+          onConfirm={confirmReject}
+          body={
+            <textarea
+              className="mt-2 w-full rounded-md border border-slate-300 p-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              rows={4}
+              value={rejectComment}
+              onChange={(event) => setRejectComment(event.target.value)}
+              placeholder="Share why the plan was rejected"
+            />
+          }
+        />
       </div>
-      <ExportDialog plan={plan} open={exportOpen} onClose={() => setExportOpen(false)} />
-      <ConfirmDialog
-        title="Reject Plan"
-        description="Provide feedback for the planner."
-        open={rejectOpen}
-        destructive
-        confirmText="Reject"
-        onCancel={() => setRejectOpen(false)}
-        onConfirm={confirmReject}
-        body={
-          <textarea
-            className="mt-2 w-full rounded-md border border-slate-300 p-2 text-sm"
-            rows={4}
-            value={rejectComment}
-            onChange={(event) => setRejectComment(event.target.value)}
-            placeholder="Share why the plan was rejected"
-          />
-        }
-      />
-    </div>
+    </main>
   );
 }
