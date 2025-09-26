@@ -127,6 +127,7 @@ revealed by expanding the respective line item.
 ## UI Mockups
 
 The simplified SVG diagrams below illustrate the main screens so you can quickly
+
 understand the layout without running the app. Click any image to open the raw
 SVG file.
 
