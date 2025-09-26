@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null && request.auth.token != null;
+    }
+
+    function hasOrgRole(orgId, roles) {
+      return isAuthenticated() && orgId in request.auth.token.orgRoles && request.auth.token.orgRoles[orgId] in roles;
+    }
+
+    function hasWorkspaceRole(workspaceId, roles) {
+      return (
+        isAuthenticated() &&
+        workspaceId in request.auth.token.workspaceRoles &&
+        request.auth.token.workspaceRoles[workspaceId] in roles
+      );
+    }
+
+    match /orgs/{orgId} {
+      allow read: if hasOrgRole(orgId, ['admin', 'planner', 'analyst', 'partner']);
+      allow write: if hasOrgRole(orgId, ['admin']);
+    }
+
+    match /workspaces/{workspaceId} {
+      allow read: if hasWorkspaceRole(workspaceId, ['admin', 'planner', 'analyst', 'partner']);
+      allow write: if hasWorkspaceRole(workspaceId, ['admin']);
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if request.auth.uid == userId;
+    }
+
+    match /plans/{planId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst', 'partner']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin', 'planner']);
+    }
+
+    match /planVersions/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst']);
+      allow write: if false;
+    }
+
+    match /tactics/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin', 'planner']);
+    }
+
+    match /insertionOrders/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin', 'planner']);
+    }
+
+    match /connections/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin']);
+    }
+
+    match /syncRuns/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin']);
+    }
+
+    match /kpiThresholds/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin', 'planner']);
+    }
+
+    match /alerts/{docId} {
+      allow read, update: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst']);
+      allow create: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin', 'planner', 'analyst']);
+      allow delete: if hasWorkspaceRole(resource.data.workspaceId, ['admin']);
+    }
+
+    match /dashboards/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst', 'partner']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin', 'planner']);
+    }
+
+    match /reports/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst', 'partner']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin', 'planner']);
+    }
+
+    match /tasks/{docId} {
+      allow read: if hasWorkspaceRole(resource.data.workspaceId, ['admin', 'planner', 'analyst', 'partner']);
+      allow write: if hasWorkspaceRole(request.resource.data.workspaceId, ['admin', 'planner']);
+    }
+
+    match /auditLogs/{docId} {
+      allow read: if hasOrgRole(resource.data.orgId, ['admin']);
+      allow write: if false;
+    }
+  }
+}
