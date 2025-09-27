@@ -7,9 +7,11 @@ import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { useMutatePlan } from '@/api/plans';
 import { useUser, canApprove } from '@/auth/useUser';
+import { formatDateTime } from '@/lib/date';
 
 const metaSchema = z.object({
   name: z.string().min(2, 'Name is required'),
+  client: z.string().min(2, 'Client is required'),
   code: z.string().min(1, 'Code is required'),
 });
 
@@ -37,12 +39,12 @@ export function PlanTitleBar({
 
   const form = useForm<MetaForm>({
     resolver: zodResolver(metaSchema),
-    defaultValues: { name: plan.meta.name, code: plan.meta.code },
+    defaultValues: { name: plan.meta.name, client: plan.meta.client, code: plan.meta.code },
   });
 
   useEffect(() => {
-    form.reset({ name: plan.meta.name, code: plan.meta.code });
-  }, [plan.meta.name, plan.meta.code, form]);
+    form.reset({ name: plan.meta.name, client: plan.meta.client, code: plan.meta.code });
+  }, [plan.meta.name, plan.meta.client, plan.meta.code, form]);
 
   const submitMeta = form.handleSubmit(async (values) => {
     if (editingDisabled) return;
@@ -59,12 +61,18 @@ export function PlanTitleBar({
   const showRevert = plan.status !== 'Draft' && plan.status !== 'Approved';
 
   const nameId = `plan-name-${plan.id}`;
+  const clientId = `plan-client-${plan.id}`;
   const codeId = `plan-code-${plan.id}`;
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex w-full flex-col gap-4 lg:max-w-xl">
+          <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Client</p>
+            <p className="text-lg font-semibold text-indigo-900">{plan.meta.client}</p>
+            <p className="text-xs text-indigo-700">Keep teams aligned by validating the brand you are planning for.</p>
+          </div>
           <form
             className="grid w-full gap-4 sm:grid-cols-3 sm:items-end"
             onSubmit={(event) => event.preventDefault()}
@@ -76,6 +84,18 @@ export function PlanTitleBar({
               <Input
                 {...form.register('name')}
                 id={nameId}
+                onBlur={() => submitMeta()}
+                disabled={editingDisabled}
+                className="w-full"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor={clientId} className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Client
+              </label>
+              <Input
+                {...form.register('client')}
+                id={clientId}
                 onBlur={() => submitMeta()}
                 disabled={editingDisabled}
                 className="w-full"
@@ -99,7 +119,7 @@ export function PlanTitleBar({
               v{plan.meta.version}
             </span>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{plan.status}</span>
-            <span className="text-slate-400">Last modified {new Date(plan.lastModified).toLocaleString()}</span>
+            <span className="text-slate-400">Last modified {formatDateTime(plan.lastModified)}</span>
           </div>
           <p className="text-xs text-slate-500">Autosaves instantly after each change.</p>
         </div>

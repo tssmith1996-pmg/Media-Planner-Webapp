@@ -99,6 +99,10 @@ export const flightSchema = z.object({
   buy_type: z.string(),
   buying_currency: z.string(),
   fx_rate: z.number().positive(),
+  active_periods_json: z
+    .array(z.object({ start: isoDate, end: isoDate }))
+    .default([])
+    .describe('Optional pulse windows for the flight'),
 });
 
 export type Flight = z.infer<typeof flightSchema>;
@@ -556,6 +560,7 @@ export type PlanStatus = z.infer<typeof planStatusSchema>;
 
 export const planMetaSchema = z.object({
   name: z.string(),
+  client: z.string(),
   code: z.string(),
   version: z.number().int().positive(),
 });
@@ -675,7 +680,12 @@ export function createDraftPlan(overrides?: Partial<Plan>): Plan {
   const now = new Date().toISOString();
   const base = {
     id: createId('plan'),
-    meta: { name: 'New Plan', code: `PLAN-${Math.random().toString(36).slice(2, 6).toUpperCase()}`, version: 1 },
+    meta: {
+      name: 'New Plan',
+      client: 'Unassigned Client',
+      code: `PLAN-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      version: 1,
+    },
     status: 'Draft' as const,
     goal: { budget: 0, reach: 0, frequency: 0 },
     campaigns: [] as Campaign[],
@@ -698,5 +708,10 @@ export function createDraftPlan(overrides?: Partial<Plan>): Plan {
     owner: overrides?.owner ?? 'Taylor Planner',
     approver: undefined,
   } satisfies Omit<Plan, 'id'> & { id: string };
-  return planSchema.parse({ ...base, ...overrides });
+  const merged = {
+    ...base,
+    ...overrides,
+    meta: { ...base.meta, ...overrides?.meta },
+  };
+  return planSchema.parse(merged);
 }
