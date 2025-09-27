@@ -54,11 +54,13 @@ export function MediaPlanningPage() {
     );
   }
 
-  const handleBudgetChange = (tacticId: string, budget: number) => {
+  const handleBudgetChange = (lineItemId: string, budget: number) => {
     if (editingDisabled) return;
     const next = {
       ...plan,
-      tactics: plan.tactics.map((tactic) => (tactic.id === tacticId ? { ...tactic, budget } : tactic)),
+      lineItems: plan.lineItems.map((item) =>
+        item.line_item_id === lineItemId ? { ...item, cost_planned: budget } : item,
+      ),
     };
     mutatePlan.mutate(next);
   };
@@ -124,7 +126,11 @@ export function MediaPlanningPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             <ChannelTable plan={plan} readOnly={editingDisabled} />
-            <BudgetAllocator plan={plan} onBudgetChange={handleBudgetChange} readOnly={editingDisabled} />
+            <BudgetAllocator
+              plan={plan}
+              onBudgetChange={handleBudgetChange}
+              readOnly={editingDisabled}
+            />
             <PacingWarnings plan={plan} />
             <AuditDrawer events={plan.audit} />
           </div>

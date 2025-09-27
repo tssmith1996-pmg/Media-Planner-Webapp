@@ -95,9 +95,9 @@ async function withScope<T>(callback: (scope: ScopedContext) => Promise<T>): Pro
 }
 
 function deriveTimeframe(plan: PlanRecord | Plan) {
-  const tactics = 'tactics' in plan ? plan.tactics : [];
-  const startDates = tactics.map((tactic) => new Date(tactic.startDate).getTime());
-  const endDates = tactics.map((tactic) => new Date(tactic.endDate).getTime());
+  const flights = 'flights' in plan ? plan.flights : [];
+  const startDates = flights.map((flight) => new Date(flight.start_date).getTime());
+  const endDates = flights.map((flight) => new Date(flight.end_date).getTime());
   const fallback = new Date().toISOString();
   const start = startDates.length ? new Date(Math.min(...startDates)).toISOString() : fallback;
   const end = endDates.length ? new Date(Math.max(...endDates)).toISOString() : fallback;
@@ -111,7 +111,13 @@ function recordToPlan(record: PlanRecord): Plan {
     status: record.status ?? stateToStatus[record.state],
     goal: record.goal,
     campaigns: record.campaigns,
-    tactics: record.tactics,
+    flights: record.flights,
+    audiences: record.audiences,
+    vendors: record.vendors,
+    creatives: record.creatives,
+    lineItems: record.lineItems,
+    tracking: record.tracking,
+    deliveryActuals: record.deliveryActuals,
     lastModified: record.lastModified ?? record.updatedAt,
     audit: record.audit,
     owner: record.owner ?? record.ownerId,
@@ -147,10 +153,13 @@ function planToRecord(plan: Plan, scope: ScopedContext, previous?: PlanRecord): 
     owner: plan.owner ?? previous?.owner ?? scope.user.id,
     approver: plan.approver ?? previous?.approver,
     campaigns: plan.campaigns,
-    tactics: plan.tactics.map((tactic) => ({
-      ...tactic,
-      targetKpis: (tactic as typeof tactic & { targetKpis?: Record<string, unknown> }).targetKpis ?? {},
-    })),
+    flights: plan.flights,
+    audiences: plan.audiences,
+    vendors: plan.vendors,
+    creatives: plan.creatives,
+    lineItems: plan.lineItems,
+    tracking: plan.tracking,
+    deliveryActuals: plan.deliveryActuals,
     scenarioOf: previous?.scenarioOf,
     status: plan.status,
   });
