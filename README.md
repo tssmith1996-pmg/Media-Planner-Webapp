@@ -12,6 +12,22 @@ npm install
 npm run dev
 ```
 
+### Authentication modes during development
+
+The app supports both the production Firebase authentication flow and a mock mode that bypasses sign-in entirely. Use the mock mode whenever you want to exercise the planning features locally without logging in:
+
+```bash
+npm run dev:mock
+```
+
+When you need to test the full authentication experience against Firebase (for example when running against emulators or a staging project), start the dev server with:
+
+```bash
+npm run dev:firebase
+```
+
+Both commands respect the rest of the environment configuration documented below.
+
 
 ## Local testing with Firebase emulators
 

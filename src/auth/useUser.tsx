@@ -1,5 +1,21 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut as firebaseSignOut,
+} from 'firebase/auth';
+import { ENV, type AuthMode } from '@/app/env';
+import { getFirebaseServices } from '@/lib/firebase';
 
 type Role = 'Planner' | 'Manager' | 'Admin';
 
@@ -7,54 +23,158 @@ export type UserLike = {
   id: string;
   name: string;
   email?: string;
+  photoURL?: string;
   role: Role;
 };
 
+type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
+
 type UserContextValue = {
+  mode: AuthMode;
+  status: AuthStatus;
   user: UserLike;
   setRole: (role: Role) => void;
+  canEditRole: boolean;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
 };
 
-const defaultUser: UserLike = {
+const defaultUserBase = {
   id: 'local-user',
   name: 'Taylor Planner',
-  role: 'Planner',
-};
+  email: 'taylor.planner@example.com',
+} as const;
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
 
-const STORAGE_KEY = 'mp-role';
+const LEGACY_ROLE_KEY = 'mp-role';
+const ROLE_STORAGE_PREFIX = 'mp-role';
 
-function readStoredRole(): Role | undefined {
+function isRole(value: string | null): value is Role {
+  return value === 'Planner' || value === 'Manager' || value === 'Admin';
+}
+
+function readStoredRole(userId: string): Role | undefined {
   if (typeof window === 'undefined') return undefined;
-  const role = window.localStorage.getItem(STORAGE_KEY) as Role | null;
-  if (!role) return undefined;
-  if (role === 'Planner' || role === 'Manager' || role === 'Admin') {
-    return role;
+  const explicitKey = `${ROLE_STORAGE_PREFIX}:${userId}`;
+  const explicitRole = window.localStorage.getItem(explicitKey);
+  if (isRole(explicitRole)) {
+    return explicitRole;
+  }
+  const legacyRole = window.localStorage.getItem(LEGACY_ROLE_KEY);
+  if (isRole(legacyRole)) {
+    return legacyRole;
   }
   return undefined;
 }
 
-function writeStoredRole(role: Role) {
+function writeStoredRole(userId: string, role: Role) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, role);
+  const explicitKey = `${ROLE_STORAGE_PREFIX}:${userId}`;
+  window.localStorage.setItem(explicitKey, role);
+  window.localStorage.setItem(LEGACY_ROLE_KEY, role);
 }
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [role, setRoleState] = useState<Role>(() => readStoredRole() ?? defaultUser.role);
+function MockUserProvider({ children }: { children: ReactNode }) {
+  const [role, setRoleState] = useState<Role>(() => readStoredRole(defaultUserBase.id) ?? 'Planner');
 
   useEffect(() => {
-    writeStoredRole(role);
+    writeStoredRole(defaultUserBase.id, role);
   }, [role]);
 
-  const setRole = (next: Role) => setRoleState(next);
+  const setRole = useCallback((next: Role) => {
+    setRoleState(next);
+  }, []);
 
   const value = useMemo<UserContextValue>(
-    () => ({ user: { ...defaultUser, role }, setRole }),
-    [role],
+    () => ({
+      mode: 'mock',
+      status: 'authenticated',
+      user: { ...defaultUserBase, role },
+      setRole,
+      canEditRole: true,
+      signIn: async () => {},
+      signOut: async () => {},
+    }),
+    [role, setRole],
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+}
+
+function FirebaseUserProvider({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [baseUser, setBaseUser] = useState<Omit<UserLike, 'role'>>({
+    id: 'anonymous-user',
+    name: 'Guest User',
+    email: undefined,
+  });
+  const [userId, setUserId] = useState<string>('anonymous-user');
+  const [role, setRoleState] = useState<Role>(() => readStoredRole('anonymous-user') ?? 'Planner');
+
+  useEffect(() => {
+    const { auth } = getFirebaseServices();
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const nextRole = readStoredRole(firebaseUser.uid) ?? 'Planner';
+        setBaseUser({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName ?? firebaseUser.email ?? 'Authenticated Planner',
+          email: firebaseUser.email ?? undefined,
+          photoURL: firebaseUser.photoURL ?? undefined,
+        });
+        setUserId(firebaseUser.uid);
+        setRoleState(nextRole);
+        setStatus('authenticated');
+      } else {
+        const nextRole = readStoredRole('anonymous-user') ?? 'Planner';
+        setBaseUser({ id: 'anonymous-user', name: 'Guest User', email: undefined });
+        setUserId('anonymous-user');
+        setRoleState(nextRole);
+        setStatus('unauthenticated');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const setRole = useCallback((next: Role) => {
+    setRoleState(next);
+    writeStoredRole(userId, next);
+  }, [userId]);
+
+  const signIn = useCallback(async () => {
+    const { auth } = getFirebaseServices();
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, provider);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    const { auth } = getFirebaseServices();
+    await firebaseSignOut(auth);
+  }, []);
+
+  const value = useMemo<UserContextValue>(
+    () => ({
+      mode: 'firebase',
+      status,
+      user: { ...baseUser, role },
+      setRole,
+      canEditRole: true,
+      signIn,
+      signOut,
+    }),
+    [baseUser, role, setRole, signIn, signOut, status],
+  );
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+}
+
+export function UserProvider({ children }: { children: ReactNode }) {
+  if (ENV.auth === 'firebase') {
+    return <FirebaseUserProvider>{children}</FirebaseUserProvider>;
+  }
+  return <MockUserProvider>{children}</MockUserProvider>;
 }
 
 export function useUser() {

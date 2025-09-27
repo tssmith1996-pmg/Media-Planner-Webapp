@@ -1,5 +1,13 @@
 export const ENV = {
   mode: import.meta.env.MODE,
+  auth:
+    import.meta.env.VITE_AUTH_MODE === 'firebase'
+      ? 'firebase'
+      : import.meta.env.VITE_AUTH_MODE === 'mock'
+        ? 'mock'
+        : import.meta.env.MODE === 'production'
+          ? 'firebase'
+          : 'mock',
   storage:
     import.meta.env.VITE_USE_LOCAL_ONLY === 'true' || import.meta.env.MODE !== 'production'
       ? 'local'
@@ -9,3 +17,4 @@ export const ENV = {
 } as const;
 
 export type StorageMode = typeof ENV.storage;
+export type AuthMode = typeof ENV.auth;
