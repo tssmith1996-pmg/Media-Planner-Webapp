@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "cross-env VITE_AUTH_MODE=mock vite",
+    "dev:firebase": "cross-env VITE_AUTH_MODE=firebase vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -37,6 +39,7 @@
     "@typescript-eslint/parser": "^8.18.1",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.0.0",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
