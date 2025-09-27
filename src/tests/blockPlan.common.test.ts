@@ -7,7 +7,7 @@ const plan = seedData.plans[0];
 describe('buildBlockPlanMatrix', () => {
   it('creates rows for each tactic with proration buckets', () => {
     const matrix = buildBlockPlanMatrix(plan, 4);
-    expect(matrix.rows.length).toEqual(plan.tactics.length);
+    expect(matrix.rows.length).toEqual(plan.lineItems.length);
     matrix.rows.forEach((row) => {
       expect(row.buckets.length).toEqual(4);
       expect(Math.round(sumRow(row))).toEqual(Math.round(row.budget));

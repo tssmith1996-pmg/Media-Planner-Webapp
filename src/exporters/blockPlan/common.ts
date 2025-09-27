@@ -1,9 +1,9 @@
-import type { Plan, Tactic } from '@/lib/schemas';
+import type { Plan } from '@/lib/schemas';
 import { formatDateRange } from '@/lib/date';
-import { prorateTactic } from '@/lib/math';
+import { prorateLineItem } from '@/lib/math';
 
 export type BlockPlanRow = {
-  tactic: string;
+  lineItem: string;
   channel: string;
   flight: string;
   budget: number;
@@ -22,19 +22,19 @@ export function buildBucketLabels(): string[] {
   return ['Flight 1', 'Flight 2', 'Flight 3', 'Flight 4'];
 }
 
-export function bucketTactic(tactic: Tactic, bucketCount: number) {
-  return prorateTactic(tactic, bucketCount);
-}
-
 export function buildBlockPlanMatrix(plan: Plan, bucketCount = 4): BlockPlanMatrix {
   const buckets = buildBucketLabels().slice(0, bucketCount);
-  const rows: BlockPlanRow[] = plan.tactics.map((tactic) => ({
-    tactic: tactic.name,
-    channel: tactic.channel,
-    flight: formatDateRange(tactic.startDate, tactic.endDate),
-    budget: tactic.budget,
-    buckets: bucketTactic(tactic, bucketCount),
-  }));
+  const rows: BlockPlanRow[] = plan.lineItems.map((lineItem) => {
+    const flight = plan.flights.find((item) => item.flight_id === lineItem.flight_id);
+    const creative = plan.creatives.find((item) => item.creative_id === lineItem.creative_id);
+    return {
+      lineItem: creative?.ad_name ?? lineItem.line_item_id,
+      channel: lineItem.channel,
+      flight: flight ? formatDateRange(flight.start_date, flight.end_date) : '—',
+      budget: lineItem.cost_planned,
+      buckets: prorateLineItem(lineItem, flight, bucketCount),
+    };
+  });
 
   return {
     planName: plan.meta.name,

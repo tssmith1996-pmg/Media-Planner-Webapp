@@ -79,50 +79,25 @@ npm run build
 
 ## Data Model
 
-Media plans are stored as documents with the following structure:
+Plans now use a normalized, channel-extensible data model. Every plan contains:
 
-```
-{
-  client: string,
-  name: string,
-  totalBudget: number,
-  goalKpi: string,
-  campaignType: string,
-  overallGoal: string,
-  startDate: string,
-  endDate: string,
-  channels: [
-    {
-      name: string,
-      publisher: string,
-      adFormat: string,
-      size: string,
-      startDate: string,
-      endDate: string,
-      budget: number,
-      demo: string,
-      metric: string,
-      value: number,
-      mediaCommissionPct: number,
-      mediaCommissionAmount: number,
-      productionInstallationPct: number,
-      productionInstallationAmount: number,
-      daypart: string,
-      spotLength: number,
-      isProgrammatic: boolean,
-      targetingDetails: string,
-      impressionsPlanned: number,
-      clicksPlanned: number,
-      cpmPlanned: number,
-      cpePlanned: number,
-      cpcPlanned: number
-    }
-  ]
-}
-```
+- **Campaigns** (`campaign_id`, brand, market, objective, primary KPI, fiscal period)
+- **Flights** (linked to campaigns with start/end dates, budget, buy type, currency, FX rate)
+- **Audiences** (definition, age range, gender, geo, and segment identifiers)
+- **Vendors** (name, rich contact details, IO references)
+- **Creatives** (metadata, asset URIs, formats, and clearance details)
+- **Line Items** (the unit of purchase) with pricing, pacing, cap rules, brand safety, and
+  links to flights/audiences/vendors/creatives.
+- **Channel extensions** – one-to-one records that capture channel specific fields for all
+  supported tactics (OOH, TV, BVOD/CTV, Digital Display & Video, Social, Search, Radio,
+  Streaming Audio, Podcast, Cinema, Print, Retail Media, Influencer, Sponsorship,
+  Email/Direct Mail, Gaming/Native, Affiliate, Experiential).
+- **Tracking** (ad server metadata, verification vendors, conversion sources, KPI targets)
+- **Delivery Actuals** (daily performance metrics and actual spend).
 
-Additional channel details are hidden by default in the plan form and can be
-revealed by expanding the respective line item.
+Only columns common to every channel appear in the media planning grid by default.
+Channel-specific extension data is accessible via the “View details” toggle on each
+line item, keeping the table focused while still exposing full fidelity data on demand.
 
 ## UI Mockups
 

@@ -1,82 +1,92 @@
 import { differenceInDays } from './mathHelpers';
-import { Plan, Tactic } from './schemas';
+import type { Flight, LineItem, Plan } from './schemas';
 
 type ChannelSummary = {
   channel: string;
   budget: number;
-  impressions: number;
-  cpm: number;
+  units: number;
+  blendedRate: number;
 };
 
 export type PlanTotals = {
   totalBudget: number;
-  totalImpressions: number;
-  cpm: number;
+  totalUnits: number;
+  blendedRate: number;
   channels: ChannelSummary[];
 };
 
 export function calculatePlanTotals(plan: Plan): PlanTotals {
   const channelMap = new Map<string, ChannelSummary>();
 
-  for (const tactic of plan.tactics) {
-    const entry = channelMap.get(tactic.channel) ?? {
-      channel: tactic.channel,
+  for (const lineItem of plan.lineItems) {
+    const existing = channelMap.get(lineItem.channel) ?? {
+      channel: lineItem.channel,
       budget: 0,
-      impressions: 0,
-      cpm: 0,
+      units: 0,
+      blendedRate: 0,
     };
 
-    entry.budget += tactic.budget;
-    entry.impressions += tactic.goalImpressions ?? 0;
-    channelMap.set(tactic.channel, entry);
+    existing.budget += lineItem.cost_planned;
+    existing.units += lineItem.units_planned;
+    channelMap.set(lineItem.channel, existing);
   }
 
   const channels = Array.from(channelMap.values()).map((summary) => ({
     ...summary,
-    cpm: summary.impressions > 0 ? (summary.budget / summary.impressions) * 1000 : 0,
+    blendedRate: summary.units > 0 ? summary.budget / summary.units : 0,
   }));
 
   const totalBudget = channels.reduce((acc, channel) => acc + channel.budget, 0);
-  const totalImpressions = channels.reduce((acc, channel) => acc + channel.impressions, 0);
+  const totalUnits = channels.reduce((acc, channel) => acc + channel.units, 0);
 
   return {
     channels,
     totalBudget,
-    totalImpressions,
-    cpm: totalImpressions > 0 ? (totalBudget / totalImpressions) * 1000 : 0,
+    totalUnits,
+    blendedRate: totalUnits > 0 ? totalBudget / totalUnits : 0,
   };
 }
 
 export function buildPacingWarnings(plan: Plan) {
   const warnings: string[] = [];
-  for (const tactic of plan.tactics) {
-    const campaign = plan.campaigns.find((item) => item.id === tactic.campaignId);
-    if (!campaign) continue;
-    const totalDays = differenceInDays(campaign.endDate, campaign.startDate) + 1;
-    const tacticDays = differenceInDays(tactic.endDate, tactic.startDate) + 1;
-    if (tacticDays < totalDays / 2) {
-      warnings.push(`${tactic.name} flight is shorter than half of campaign ${campaign.name}.`);
+
+  for (const lineItem of plan.lineItems) {
+    const flight = plan.flights.find((item) => item.flight_id === lineItem.flight_id);
+    if (!flight) continue;
+    const campaign = plan.campaigns.find((item) => item.campaign_id === flight.campaign_id);
+    const totalDays = differenceInDays(flight.end_date, flight.start_date) + 1;
+    if (totalDays <= 0) continue;
+    const flightBudget = flight.budget_total;
+    if (flightBudget > 0 && lineItem.cost_planned / flightBudget > 0.6) {
+      warnings.push(`${lineItem.line_item_id} captures more than 60% of flight ${flight.flight_id} budget.`);
     }
-    if (tactic.budget / campaign.budget > 0.5) {
-      warnings.push(`${tactic.name} captures more than half of ${campaign.name} budget.`);
+    if (campaign) {
+      const otherFlights = plan.flights.filter((item) => item.campaign_id === campaign.campaign_id);
+      const campaignBudget = otherFlights.reduce((acc, current) => acc + current.budget_total, 0);
+      if (campaignBudget > 0 && lineItem.cost_planned / campaignBudget > 0.35) {
+        warnings.push(`${lineItem.line_item_id} is a large share of campaign ${campaign.brand}.`);
+      }
     }
   }
+
   return warnings;
 }
 
-export function prorateTactic(tactic: Tactic, buckets: number): number[] {
-  const totalDays = differenceInDays(tactic.endDate, tactic.startDate) + 1;
-  if (totalDays <= 0 || buckets <= 0) return [];
-  const daily = tactic.budget / totalDays;
-  const bucketSize = Math.ceil(totalDays / buckets);
+export function prorateLineItem(lineItem: LineItem, flight: Flight | undefined, buckets: number): number[] {
+  if (!flight || buckets <= 0) return [];
+  const totalDays = differenceInDays(flight.end_date, flight.start_date) + 1;
+  if (totalDays <= 0) return [];
+
+  const dailyBudget = lineItem.cost_planned / totalDays;
+  const bucketSize = Math.max(1, Math.ceil(totalDays / buckets));
   const distribution: number[] = [];
+
   for (let index = 0; index < buckets; index += 1) {
-    const daysInBucket = Math.min(bucketSize, totalDays - index * bucketSize);
-    if (daysInBucket <= 0) {
-      distribution.push(0);
-    } else {
-      distribution.push(daily * daysInBucket);
-    }
+    const startDay = index * bucketSize;
+    const remaining = Math.max(totalDays - startDay, 0);
+    const daysInBucket = Math.min(bucketSize, remaining);
+    distribution.push(daysInBucket > 0 ? dailyBudget * daysInBucket : 0);
   }
+
   return distribution;
 }

@@ -16,12 +16,18 @@ export async function buildPdf(plan: Plan) {
   doc.text(`Version ${plan.meta.version} • Status ${plan.status}`, 14, 33);
   doc.text(`Approver: ${plan.approver ?? 'Pending'}`, 14, 40);
 
-  const body = matrix.rows.map((row) => [row.tactic, row.channel, row.flight, ...row.buckets.map((value) => value.toFixed(0)), sumRow(row).toFixed(0)]);
+  const body = matrix.rows.map((row) => [
+    row.lineItem,
+    row.channel,
+    row.flight,
+    ...row.buckets.map((value) => value.toFixed(0)),
+    sumRow(row).toFixed(0),
+  ]);
   const totals = buildTotalsRow(matrix).map((value) => value.toFixed(0));
 
   autoTable(doc, {
     startY: 48,
-    head: [['Tactic', 'Channel', 'Flight', ...matrix.buckets, 'Total']],
+    head: [['Line Item', 'Channel', 'Flight', ...matrix.buckets, 'Total']],
     body,
     foot: [['Total', '', '', ...totals, matrix.rows.reduce((acc, row) => acc + sumRow(row), 0).toFixed(0)]],
     theme: 'grid',

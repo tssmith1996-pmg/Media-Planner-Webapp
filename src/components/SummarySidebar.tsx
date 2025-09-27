@@ -1,6 +1,6 @@
 import type { Plan } from '@/lib/schemas';
 import { calculatePlanTotals } from '@/lib/math';
-import { currencyFormatter, percentFormatter } from '@/lib/formatters';
+import { currencyFormatter, numberFormatter, percentFormatter } from '@/lib/formatters';
 
 export function SummarySidebar({ plan }: { plan: Plan }) {
   const totals = calculatePlanTotals(plan);
@@ -19,15 +19,15 @@ export function SummarySidebar({ plan }: { plan: Plan }) {
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-4">
-          <dt className="text-slate-500">Impressions</dt>
+          <dt className="text-slate-500">Units Planned</dt>
           <dd className="text-right font-semibold text-slate-900">
-            {currencyFormatter.format(totals.totalImpressions).replace('$', '')}
+            {numberFormatter.format(totals.totalUnits)}
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-4">
-          <dt className="text-slate-500">Blended CPM</dt>
+          <dt className="text-slate-500">Blended Rate</dt>
           <dd className="text-right font-semibold text-slate-900">
-            {currencyFormatter.format(totals.cpm)}
+            {currencyFormatter.format(totals.blendedRate)}
           </dd>
         </div>
       </dl>

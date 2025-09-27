@@ -4,8 +4,8 @@ import { buildBlockPlanMatrix, buildTotalsRow, sumRow } from './common';
 
 export async function buildExcelWorkbook(plan: Plan) {
   const matrix = buildBlockPlanMatrix(plan);
-  const header = ['Tactic', 'Channel', 'Flight', ...matrix.buckets, 'Total'];
-  const rows = matrix.rows.map((row) => [row.tactic, row.channel, row.flight, ...row.buckets, sumRow(row)]);
+  const header = ['Line Item', 'Channel', 'Flight', ...matrix.buckets, 'Total'];
+  const rows = matrix.rows.map((row) => [row.lineItem, row.channel, row.flight, ...row.buckets, sumRow(row)]);
   const totals = ['Total', '', '', ...buildTotalsRow(matrix), matrix.rows.reduce((acc, row) => acc + sumRow(row), 0)];
 
   const blockSheet = XLSX.utils.aoa_to_sheet([header, ...rows, totals]);

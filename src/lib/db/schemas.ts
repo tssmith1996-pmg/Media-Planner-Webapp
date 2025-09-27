@@ -1,5 +1,18 @@
 import { z } from 'zod';
 import { Timestamp } from 'firebase/firestore';
+import {
+  approvalEventSchema,
+  audienceSchema as appAudienceSchema,
+  campaignSchema as appCampaignSchema,
+  creativeSchema as appCreativeSchema,
+  deliveryActualSchema as appDeliveryActualSchema,
+  flightSchema as appFlightSchema,
+  lineItemSchema as appLineItemSchema,
+  planMetaSchema as appPlanMetaSchema,
+  planStatusSchema as appPlanStatusSchema,
+  trackingSchema as appTrackingSchema,
+  vendorSchema as appVendorSchema,
+} from '@/lib/schemas';
 
 const isoDate = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
   message: 'Invalid ISO date',
@@ -70,14 +83,8 @@ export const planSchema = z.object({
   updatedAt: isoDate,
   createdBy: z.string(),
   updatedBy: z.string(),
-  status: z.enum(['Draft', 'Submitted', 'Approved', 'Rejected', 'Archived']).default('Draft'),
-  meta: z
-    .object({
-      name: z.string(),
-      code: z.string(),
-      version: z.number().int().positive(),
-    })
-    .default({ name: '', code: '', version: 1 }),
+  status: appPlanStatusSchema.default('Draft'),
+  meta: appPlanMetaSchema.default({ name: '', code: '', version: 1 }),
   goal: z
     .object({
       budget: z.number().nonnegative(),
@@ -86,51 +93,17 @@ export const planSchema = z.object({
     })
     .default({ budget: 0, reach: 0, frequency: 0 }),
   lastModified: isoDate,
-  audit: z
-    .array(
-      z.object({
-        id: z.string(),
-        actor: z.string(),
-        action: z.string(),
-        comment: z.string().optional(),
-        timestamp: isoDate,
-      }),
-    )
-    .default([]),
+  audit: z.array(approvalEventSchema).default([]),
   owner: z.string(),
   approver: z.string().optional(),
-  campaigns: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        startDate: isoDate,
-        endDate: isoDate,
-        budget: z.number().nonnegative(),
-        objective: z.string(),
-      }),
-    )
-    .default([]),
-  tactics: z
-    .array(
-      z.object({
-        id: z.string(),
-        campaignId: z.string(),
-        name: z.string(),
-        channel: z.string(),
-        market: z.string(),
-        startDate: isoDate,
-        endDate: isoDate,
-        budget: z.number().nonnegative(),
-        targetKpis: z.record(z.unknown()).default({}),
-        notes: z.string().optional(),
-        bidType: z.enum(['CPM', 'CPC', 'CPA']).default('CPM'),
-        goalImpressions: z.number().nonnegative().optional(),
-        goalClicks: z.number().nonnegative().optional(),
-        goalConversions: z.number().nonnegative().optional(),
-      }),
-    )
-    .default([]),
+  campaigns: z.array(appCampaignSchema).default([]),
+  flights: z.array(appFlightSchema).default([]),
+  audiences: z.array(appAudienceSchema).default([]),
+  vendors: z.array(appVendorSchema).default([]),
+  creatives: z.array(appCreativeSchema).default([]),
+  lineItems: z.array(appLineItemSchema).default([]),
+  tracking: z.array(appTrackingSchema).default([]),
+  deliveryActuals: z.array(appDeliveryActualSchema).default([]),
   scenarioOf: z.string().optional(),
 });
 

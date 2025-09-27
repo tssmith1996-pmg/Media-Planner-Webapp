@@ -9,7 +9,7 @@ export function BudgetAllocator({
   readOnly,
 }: {
   plan: Plan;
-  onBudgetChange: (tacticId: string, budget: number) => void;
+  onBudgetChange: (lineItemId: string, budget: number) => void;
   readOnly?: boolean;
 }) {
   const handleChange = (event: ChangeEvent<HTMLInputElement>, id: string) => {
@@ -26,23 +26,28 @@ export function BudgetAllocator({
         <p className="text-xs text-slate-500">Adjust to see updated totals.</p>
       </div>
       <div className="space-y-3">
-        {plan.tactics.map((tactic) => (
-          <div key={tactic.id} className="flex flex-wrap items-center gap-3">
-            <div className="w-48 text-sm font-medium text-slate-700">{tactic.name}</div>
-            <Input
-              key={`${tactic.id}-${tactic.budget}`}
-              type="number"
+        {plan.lineItems.map((lineItem) => {
+          const label = plan.creatives.find((item) => item.creative_id === lineItem.creative_id)?.ad_name;
+          return (
+            <div key={lineItem.line_item_id} className="flex flex-wrap items-center gap-3">
+              <div className="w-48 text-sm font-medium text-slate-700">{label ?? lineItem.line_item_id}</div>
+              <Input
+                key={`${lineItem.line_item_id}-${lineItem.cost_planned}`}
+                type="number"
               step={1000}
               min={0}
-              defaultValue={tactic.budget}
+              defaultValue={lineItem.cost_planned}
               disabled={readOnly}
-              onBlur={(event) => handleChange(event, tactic.id)}
+              onBlur={(event) => handleChange(event, lineItem.line_item_id)}
               className="w-32"
-              aria-label={`${tactic.name} budget`}
+              aria-label={`${label ?? lineItem.line_item_id} planned cost`}
             />
-            <span className="text-xs text-slate-500">Current: {currencyFormatter.format(tactic.budget)}</span>
-          </div>
-        ))}
+              <span className="text-xs text-slate-500">
+                Current: {currencyFormatter.format(lineItem.cost_planned)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
