@@ -12,6 +12,7 @@ import {
   planStatusSchema as appPlanStatusSchema,
   trackingSchema as appTrackingSchema,
   vendorSchema as appVendorSchema,
+  weekStartEnum,
 } from '@/lib/schemas';
 
 const isoDate = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
@@ -85,6 +86,9 @@ export const planSchema = z.object({
   updatedBy: z.string(),
   status: appPlanStatusSchema.default('Draft'),
   meta: appPlanMetaSchema.default({ name: '', code: '', version: 1 }),
+  startDate: isoDate.optional(),
+  endDate: isoDate.optional(),
+  weekStartDay: weekStartEnum.default('Monday'),
   goal: z
     .object({
       budget: z.number().nonnegative(),

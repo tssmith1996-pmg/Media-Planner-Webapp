@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   usePlan,
-  useMutatePlan,
   useSubmitPlan,
   useApprovePlan,
   useRejectPlan,
@@ -11,8 +10,6 @@ import {
 } from '@/api/plans';
 import { GoalKPIBar } from '@/components/GoalKPIBar';
 import { ChannelTable } from '@/components/ChannelTable';
-import { BudgetAllocator } from '@/components/BudgetAllocator';
-import { SummarySidebar } from '@/components/SummarySidebar';
 import { PacingWarnings } from '@/components/PacingWarnings';
 import { PlanTitleBar } from '@/components/PlanTitleBar';
 import { AuditDrawer } from '@/components/AuditDrawer';
@@ -20,12 +17,12 @@ import { ExportDialog } from '@/components/ExportDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/ui/Button';
 import { useUser } from '@/auth/useUser';
+import { MediaPlanOverviewCard } from '@/components/MediaPlanOverviewCard';
 
 export function MediaPlanningPage() {
   const params = useParams();
   const navigate = useNavigate();
   const { data: plan, isLoading } = usePlan(params.id);
-  const mutatePlan = useMutatePlan();
   const submitPlan = useSubmitPlan();
   const approvePlan = useApprovePlan();
   const rejectPlan = useRejectPlan();
@@ -41,6 +38,15 @@ export function MediaPlanningPage() {
 
   const pageTitle = useMemo(() => plan?.meta.name ?? 'Plan', [plan?.meta.name]);
 
+  const handleOverviewEdit = useCallback(() => {
+    if (typeof window === 'undefined' || !plan?.id) return;
+    const target = document.getElementById(`plan-name-${plan.id}`);
+    if (!(target instanceof HTMLElement)) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'center' });
+    target.focus();
+  }, [plan?.id]);
+
   if (isLoading) {
     return <p className="text-sm text-slate-500">Loading plan...</p>;
   }
@@ -53,17 +59,6 @@ export function MediaPlanningPage() {
       </div>
     );
   }
-
-  const handleBudgetChange = (lineItemId: string, budget: number) => {
-    if (editingDisabled) return;
-    const next = {
-      ...plan,
-      lineItems: plan.lineItems.map((item) =>
-        item.line_item_id === lineItemId ? { ...item, cost_planned: budget } : item,
-      ),
-    };
-    mutatePlan.mutate(next);
-  };
 
   const handleSubmit = async () => {
     await submitPlan.mutateAsync({ id: plan.id, actor: user.name });
@@ -105,14 +100,24 @@ export function MediaPlanningPage() {
               Adjust channel budgets, track pacing, and share plans for approval.
             </p>
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => setExportOpen(true)}
-            className="self-start lg:self-auto"
-          >
-            Export Block Plan
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button
+              variant="secondary"
+              onClick={() => navigate(`/plan/${plan.id}/block`)}
+              className="self-start lg:self-auto"
+            >
+              View Block Plan
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setExportOpen(true)}
+              className="self-start lg:self-auto"
+            >
+              Export Plan
+            </Button>
+          </div>
         </header>
+        <MediaPlanOverviewCard plan={plan} onEdit={handleOverviewEdit} />
         <PlanTitleBar
           plan={plan}
           editingDisabled={Boolean(editingDisabled)}
@@ -122,19 +127,16 @@ export function MediaPlanningPage() {
           onRevert={handleRevert}
           onDuplicate={handleDuplicate}
         />
-        <GoalKPIBar plan={plan} />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
-            <ChannelTable plan={plan} readOnly={editingDisabled} />
-            <BudgetAllocator
-              plan={plan}
-              onBudgetChange={handleBudgetChange}
-              readOnly={editingDisabled}
-            />
-            <PacingWarnings plan={plan} />
-            <AuditDrawer events={plan.audit} />
-          </div>
-          <SummarySidebar plan={plan} />
+        <section aria-labelledby="plan-health" className="space-y-4">
+          <h2 id="plan-health" className="sr-only">
+            Plan health
+          </h2>
+          <GoalKPIBar plan={plan} />
+        </section>
+        <ChannelTable plan={plan} readOnly={editingDisabled} />
+        <div className="space-y-6">
+          <PacingWarnings plan={plan} />
+          <AuditDrawer events={plan.audit} />
         </div>
         <ExportDialog plan={plan} open={exportOpen} onClose={() => setExportOpen(false)} />
         <ConfirmDialog
