@@ -32,5 +32,4 @@
 
 ## Noted Limitations
 - The new add-channel scaffolder seeds placeholder vendors, creatives, and flights; planners still need dedicated edit forms to replace the stub data before export.
-- Firebase authentication cannot be exercised locally without providing the required `VITE_FIREBASE_*` variables.
 
