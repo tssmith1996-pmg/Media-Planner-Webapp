@@ -31,6 +31,5 @@
 - ✅ Result: Planned cost reflected new value immediately in both allocator and channel table, confirming mutation workflow.
 
 ## Noted Limitations
-- Newly created plans start with zero campaigns, flights, and line items and there is no UI to add them, blocking true data entry for fresh plans.
-- Firebase authentication cannot be exercised locally without providing the required `VITE_FIREBASE_*` variables.
+- The new add-channel scaffolder seeds placeholder vendors, creatives, and flights; planners still need dedicated edit forms to replace the stub data before export.
 

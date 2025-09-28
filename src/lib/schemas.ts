@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createId } from './id';
+import { addDays, toIsoDate } from './date';
 
 const isoDate = z
   .string()
@@ -54,6 +55,9 @@ export const channelEnum = z.enum([
 
 export type Channel = z.infer<typeof channelEnum>;
 
+export const weekStartEnum = z.enum(['Sunday', 'Monday']);
+export type WeekStartDay = z.infer<typeof weekStartEnum>;
+
 export const pricingModelEnum = z.enum(['CPM', 'CPC', 'CPA', 'CPP', 'CPT', 'Fixed', 'Hybrid']);
 export const goalTypeEnum = z.enum([
   'Reach',
@@ -99,6 +103,10 @@ export const flightSchema = z.object({
   buy_type: z.string(),
   buying_currency: z.string(),
   fx_rate: z.number().positive(),
+  active_periods_json: z
+    .array(z.object({ start: isoDate, end: isoDate }))
+    .default([])
+    .describe('Optional pulse windows for the flight'),
 });
 
 export type Flight = z.infer<typeof flightSchema>;
@@ -425,6 +433,17 @@ const lineItemBaseSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const blockPlanWeekSchema = z.object({
+  week_start: isoDate,
+  active: z.boolean(),
+});
+
+export const blockPlanSchema = z.object({
+  version: z.number().int().min(1).default(1),
+  week_unit: z.literal('plan-week'),
+  weeks: z.array(blockPlanWeekSchema),
+});
+
 type ExtensionKeys =
   | 'ooh_ext'
   | 'tv_ext'
@@ -445,6 +464,7 @@ type ExtensionKeys =
 
 export const lineItemSchema = lineItemBaseSchema
   .extend({
+    block_plan: blockPlanSchema.default(() => ({ version: 1, week_unit: 'plan-week', weeks: [] })),
     ooh_ext: oohExtSchema.optional(),
     tv_ext: tvExtSchema.optional(),
     bvod_ext: bvodExtSchema.optional(),
@@ -556,6 +576,7 @@ export type PlanStatus = z.infer<typeof planStatusSchema>;
 
 export const planMetaSchema = z.object({
   name: z.string(),
+  client: z.string(),
   code: z.string(),
   version: z.number().int().positive(),
 });
@@ -565,6 +586,9 @@ export const planSchema = z
     id: z.string().default(() => createId('plan')),
     meta: planMetaSchema,
     status: planStatusSchema,
+    start_date: isoDate,
+    end_date: isoDate,
+    week_start_day: weekStartEnum.default('Monday'),
     goal: z.object({
       budget: z.number().nonnegative(),
       reach: z.number().nonnegative(),
@@ -605,6 +629,14 @@ export const planSchema = z
           path: ['flights'],
         });
       }
+    }
+
+    if (new Date(plan.end_date) < new Date(plan.start_date)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Plan end date must be on or after start date',
+        path: ['end_date'],
+      });
     }
 
     const seenTracking = new Set<string>();
@@ -670,13 +702,26 @@ export const planSchema = z
   });
 
 export type Plan = z.infer<typeof planSchema>;
+export type BlockPlan = z.infer<typeof blockPlanSchema>;
+export type BlockPlanWeek = z.infer<typeof blockPlanWeekSchema>;
 
 export function createDraftPlan(overrides?: Partial<Plan>): Plan {
   const now = new Date().toISOString();
+  const today = new Date();
+  const defaultStart = toIsoDate(today);
+  const defaultEnd = toIsoDate(addDays(today, 27));
   const base = {
     id: createId('plan'),
-    meta: { name: 'New Plan', code: `PLAN-${Math.random().toString(36).slice(2, 6).toUpperCase()}`, version: 1 },
+    meta: {
+      name: 'New Plan',
+      client: 'Unassigned Client',
+      code: `PLAN-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      version: 1,
+    },
     status: 'Draft' as const,
+    start_date: defaultStart,
+    end_date: defaultEnd,
+    week_start_day: 'Monday' as const,
     goal: { budget: 0, reach: 0, frequency: 0 },
     campaigns: [] as Campaign[],
     flights: [] as Flight[],
@@ -698,5 +743,10 @@ export function createDraftPlan(overrides?: Partial<Plan>): Plan {
     owner: overrides?.owner ?? 'Taylor Planner',
     approver: undefined,
   } satisfies Omit<Plan, 'id'> & { id: string };
-  return planSchema.parse({ ...base, ...overrides });
+  const merged = {
+    ...base,
+    ...overrides,
+    meta: { ...base.meta, ...overrides?.meta },
+  };
+  return planSchema.parse(merged);
 }

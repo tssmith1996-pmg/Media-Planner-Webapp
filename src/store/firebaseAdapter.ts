@@ -99,8 +99,17 @@ function deriveTimeframe(plan: PlanRecord | Plan) {
   const startDates = flights.map((flight) => new Date(flight.start_date).getTime());
   const endDates = flights.map((flight) => new Date(flight.end_date).getTime());
   const fallback = new Date().toISOString();
-  const start = startDates.length ? new Date(Math.min(...startDates)).toISOString() : fallback;
-  const end = endDates.length ? new Date(Math.max(...endDates)).toISOString() : fallback;
+  const startOverride =
+    'start_date' in plan
+      ? plan.start_date
+      : 'startDate' in plan
+        ? plan.startDate
+        : undefined;
+  const endOverride =
+    'end_date' in plan ? plan.end_date : 'endDate' in plan ? plan.endDate : undefined;
+  const start =
+    startOverride ?? (startDates.length ? new Date(Math.min(...startDates)).toISOString() : fallback);
+  const end = endOverride ?? (endDates.length ? new Date(Math.max(...endDates)).toISOString() : fallback);
   return { start, end };
 }
 
@@ -109,6 +118,9 @@ function recordToPlan(record: PlanRecord): Plan {
     id: record.id,
     meta: record.meta,
     status: record.status ?? stateToStatus[record.state],
+    start_date: record.startDate ?? record.timeframe.start.slice(0, 10),
+    end_date: record.endDate ?? record.timeframe.end.slice(0, 10),
+    week_start_day: record.weekStartDay ?? 'Monday',
     goal: record.goal,
     campaigns: record.campaigns,
     flights: record.flights,
@@ -152,6 +164,9 @@ function planToRecord(plan: Plan, scope: ScopedContext, previous?: PlanRecord): 
     audit: plan.audit,
     owner: plan.owner ?? previous?.owner ?? scope.user.id,
     approver: plan.approver ?? previous?.approver,
+    startDate: plan.start_date,
+    endDate: plan.end_date,
+    weekStartDay: plan.week_start_day,
     campaigns: plan.campaigns,
     flights: plan.flights,
     audiences: plan.audiences,

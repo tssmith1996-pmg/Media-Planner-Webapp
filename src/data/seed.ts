@@ -936,8 +936,16 @@ const deliveryActuals = lineItems.flatMap((item, index) =>
 export const plans = [
   planSchema.parse({
     id: 'plan-aurora-fy25',
-    meta: { name: 'Aurora Sparkling FY25 Launch', code: 'AURORA-FY25', version: 1 },
+    meta: {
+      name: 'Aurora Sparkling FY25 Launch',
+      client: 'Aurora Beverages',
+      code: 'AURORA-FY25',
+      version: 1,
+    },
     status: 'Draft',
+    start_date: '2025-09-23',
+    end_date: '2025-12-22',
+    week_start_day: 'Monday',
     goal: { budget: 1_200_000, reach: 6_200_000, frequency: 3.2 },
     campaigns,
     flights,

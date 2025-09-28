@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { usePlan, useApprovePlan, useRejectPlan, useRevertPlan } from '@/api/plans';
 import { GoalKPIBar } from '@/components/GoalKPIBar';
 import { ChannelTable } from '@/components/ChannelTable';
-import { SummarySidebar } from '@/components/SummarySidebar';
 import { PacingWarnings } from '@/components/PacingWarnings';
 import { AuditDrawer } from '@/components/AuditDrawer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -59,13 +58,10 @@ export function PlanDetailPage() {
         </Button>
       </div>
       <GoalKPIBar plan={plan} />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr,1fr]">
-        <div className="space-y-4">
-          <ChannelTable plan={plan} readOnly />
-          <PacingWarnings plan={plan} />
-          <AuditDrawer events={plan.audit} />
-        </div>
-        <SummarySidebar plan={plan} />
+      <div className="space-y-4">
+        <ChannelTable plan={plan} readOnly />
+        <PacingWarnings plan={plan} />
+        <AuditDrawer events={plan.audit} />
       </div>
       {canApprove(user) ? (
         <div className="flex flex-wrap gap-2">
